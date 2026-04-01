@@ -1,8 +1,22 @@
 # Project Santara: Technical Roadmap and SDLC
 
-This document defines the strict, phase-by-phase development lifecycle for the Santara monorepo. Agents must verify prerequisites are met before moving to the next phase.
+This document defines the strict, phase-by-phase development lifecycle for the Santara monorepo. All development must adhere to the patterns and references defined below.
 
-## Environment Variables Configuration
+## 0. Technical References & Authority
+Refer to these documents for architectural decisions and code style:
+
+### A. Go (Simulation Engine)
+*   **ThreeDotsLabs: Repository Pattern in Go:** [threedots.tech/post/repository-pattern-in-go/](https://threedots.tech/post/repository-pattern-in-go/)
+*   **ThreeDotsLabs: Introducing Clean Architecture:** [threedots.tech/post/introducing-clean-architecture/](https://threedots.tech/post/introducing-clean-architecture/)
+*   **ThreeDotsLabs: Wild Workouts (Example Implementation):** [github.com/ThreeDotsLabs/wild-workouts-go-ddd-example](https://github.com/ThreeDotsLabs/wild-workouts-go-ddd-example)
+*   **Google Go Style Guide:** [google.github.io/styleguide/go/](https://google.github.io/styleguide/go/)
+
+### B. Python (Inference Gateway)
+*   **ThreeDotsLabs: Introducing Clean Architecture:** [threedots.tech/post/introducing-clean-architecture/](https://threedots.tech/post/introducing-clean-architecture/)
+*   **Pydantic V2 Documentation:** [docs.pydantic.dev](https://docs.pydantic.dev)
+*   **Neo4j Python Driver:** [neo4j.com/docs/python-manual/current/](https://neo4j.com/docs/python-manual/current/)
+
+## 1. Environment Variables Configuration
 The Python AI engine requires a `.env` file at its root to manage Cloud LLM routing and the Neo4j connection:
 * `LLM_SERVICE`: The provider to use (e.g., `gemini`, `anthropic`, `openai`).
 * `LLM_MODEL`: The specific model string (e.g., `gemini-3.1-flash`, `claude-sonnet-4.5`, `gpt-4o-mini`).
@@ -20,15 +34,17 @@ The Python AI engine requires a `.env` file at its root to manage Cloud LLM rout
 * [ ] **Eager Graph Pruning:** Implement community detection to summarize Neo4j neighborhoods during ingestion, keeping LLM prompts small to optimize cloud token costs.
 * [ ] **Cloud LLM Client:** Implement the integration layer in `src/infrastructure/llm_client.py` that reads the `LLM_SERVICE` variables and executes prompts with robust exponential backoff and concurrency limits.
 
-## Phase 2: Contracts and Simulation Engine
-**Goal:** Define the data boundaries and build the Go high-concurrency tick loop.
+## Phase 2: Contracts and Simulation Engine (Go DDD Setup)
+**Goal:** Define the data boundaries and build the Go high-concurrency tick loop using a Clean Architecture approach.
 
 * [ ] **Protobuf Definition:** Create `libs/rpc-contracts/simulation.proto`. Define messages for `AgentState`, `WorldState`, and `ActionDecision`.
 * [ ] **Stub Generation:** Configure the `Makefile` to compile the `.proto` files into Go and Python stubs.
-* [ ] Scaffold the `sim-engine` Go app.
-* [ ] **Tick Loop:** Implement the master time-loop in `internal/usecase/tick_engine.go`.
-* [ ] **Agent Goroutines:** Implement the worker pool where each Goroutine represents an active agent.
-* [ ] **gRPC Client:** Implement the Go client that sends `AgentState` to Python and handles the asynchronous callback.
+* [ ] **Go DDD Scaffold:** Initialize `apps/sim-engine/internal/` with `domain`, `app`, `adapters`, and `ports`.
+* [ ] **Domain Entities:** Define the `Agent` and `Market` entities in `internal/domain/`. Implement pure business logic (e.g., `agent.Eat()`, `agent.Move()`).
+* [ ] **CQRS Implementation:** Implement `ProcessTick` as a Command struct in `internal/app/commands/` and `GetWorldState` as a Query in `internal/app/queries/`.
+* [ ] **Worker Pool:** Implement the Goroutine worker pool that executes agent behavioral loops autonomously.
+* [ ] **Dependency Injection:** Setup `internal/app/app.go` to provide the command/query handlers to the `ports` layer.
+* [ ] **In-Memory Repository:** Create an in-memory repository implementation in `internal/adapters/state/` for high-speed simulation access.
 
 ## Phase 3: Agentic RAG and Tool Execution
 **Goal:** Connect the two systems so agents can reason and act within the simulation.

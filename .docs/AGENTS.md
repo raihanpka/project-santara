@@ -1,13 +1,26 @@
-# Project Santara: Master Development Guidelines for Agentic AI
+# Project Santara: Development Guidelines and Rules for Agentic AI
 
 You are acting as a Senior AI/ML Engineer and Senior Go Backend Architect. Your task is to assist in developing Santara, a high-performance multi-agent simulation engine for agrarian micro-economies.
 
-Read this document entirely before generating any code. It contains the absolute source of truth for the system architecture, technology stack, and strict coding conventions.
+Read this document entirely before generating any code. This document serves as the absolute source of truth for Project Santara's architecture, following Domain-Driven Design (DDD) and Clean Architecture principles optimized for both Go and Python.
+
+## 0. Core Architectural References & Style Guides
+All code generated MUST adhere to the patterns and styles defined in these authoritative sources:
+
+### A. Go (Simulation Engine)
+*   **ThreeDotsLabs: Repository Pattern in Go:** [threedots.tech/post/repository-pattern-in-go/](https://threedots.tech/post/repository-pattern-in-go/)
+*   **ThreeDotsLabs: Introducing Clean Architecture:** [threedots.tech/post/introducing-clean-architecture/](https://threedots.tech/post/introducing-clean-architecture/)
+*   **ThreeDotsLabs: Wild Workouts (Example Implementation):** [github.com/ThreeDotsLabs/wild-workouts-go-ddd-example](https://github.com/ThreeDotsLabs/wild-workouts-go-ddd-example)
+*   **Google Go Style Guide:** [google.github.io/styleguide/go/](https://google.github.io/styleguide/go/)
+
+### B. Python (Inference Gateway)
+*   **ThreeDotsLabs: Introducing Clean Architecture:** [threedots.tech/post/introducing-clean-architecture/](https://threedots.tech/post/introducing-clean-architecture/)
+*   **Pydantic V2 Documentation:** [docs.pydantic.dev](https://docs.pydantic.dev)
 
 ## 1. System Architecture & The "Tick-to-Think" Loop
-Santara is a hybrid architecture split into two microservices communicating via gRPC. 
-1.  **Simulation Engine (Go):** Manages time (ticks), world state, and high-concurrency agent orchestration locally.
-2.  **Inference Gateway (Python):** Manages the embedded Knowledge Graph (Neo4j) locally and routes Agentic RAG tool-calling to Cloud LLM APIs.
+Santara is a hybrid, distributed simulation engine split into two microservices communicating via gRPC. 
+1.  **Simulation Engine (Go):** High-concurrency agent orchestration utilizing a Clean Architecture + DDD approach.
+2.  **Inference Gateway (Python):** Manages the Graph Knowledge Base (Neo4j) and Cloud Inference routing.
 
 **CRITICAL: The Asynchronous State Machine and Cloud Latency**
 * Cloud APIs introduce variable network latency. The Go engine MUST NEVER block the main simulation loop waiting for a Python gRPC response.
@@ -15,27 +28,72 @@ Santara is a hybrid architecture split into two microservices communicating via 
 * Python receives the request, injects graph context from Neo4j, and forwards it to the Cloud LLM.
 * Python must implement robust rate-limiting, exponential backoff, and retry logic to handle Cloud API constraints (e.g., HTTP 429 Too Many Requests).
 
-## 2. Technology Stack & Toolchain Rules
-* **Monorepo:** Nx. All applications and shared libraries live in a single repository.
-* **Package Manager:** Bun. **STRICT RULE:** Never generate commands using `npm`, `yarn`, or `pnpm`. Use `bun install`, `bun add`, `bun run`, etc.
-* **Go (Golang):** Version 1.21+. Use standard library concurrency (Goroutines, Channels). Avoid external state-management frameworks.
-* **Python:** Version 3.11+. Use `venv`. 
-* **Database:** Neo4j. **STRICT RULE:** Use the official `neo4j` Python driver. Connect via `NEO4J_URI`, `NEO4J_USER`, and `NEO4J_PASSWORD` environment variables. Do not generate code for KuzuDB.
-* **LLM Inference:** Cloud LLM APIs. The system must dynamically support different providers via environment variables: `LLM_SERVICE`, `LLM_MODEL`, and `LLM_API_KEY`.
-* **Frontend:** Nuxt.js v4 (Vue Router), Tailwind CSS, Vue.
+## 2. Technology Stack & Framework Selection
 
-## 3. Directory Context (Where Code Belongs)
-When generating files, ensure they are placed in the correct Clean Architecture layer:
-* `apps/sim-engine/internal/domain/`: Go structs defining the exact shape of Agents, Markets, and World State. No business logic here.
-* `apps/sim-engine/internal/usecase/`: Go business logic. The Tick Engine, the Goroutine worker pools, and the CQRS state-mutation channels.
-* `apps/ai-engine/src/api/`: Python FastAPI routers and gRPC Servicers. Must strictly use Pydantic for request validation.
-* `apps/ai-engine/src/usecases/`: Python LLM tool-calling logic, Neo4j Cypher execution, and Cloud API integration.
-* `libs/rpc-contracts/`: All `.proto` files. This is the only place data contracts are defined.
+### A. Simulation Engine (Go)
+*   **Concurrency:** Standard Go Concurrency (Goroutines, Channels).
+*   **Communication:** `google.golang.org/grpc` and `google.golang.org/protobuf`.
+*   **Logging:** `github.com/rs/zerolog` for structured JSON logging.
+*   **Testing & Mocking:** `testing` (stdlib), `github.com/stretchr/testify`, and `github.com/vektra/mockery/v2`.
+*   **Environment:** `github.com/caarlos0/env/v11` for type-safe config.
 
-## 4. Strict Coding Conventions
-* **Format:** Never use emojis in code, comments, documentation, UI components, or commit messages. This is an absolute rule.
-* **Typography:** Use standard hyphens only. Do not use em dashes or en dashes.
-* **Go Convention Style:** Prefer Google Go Style Guide is a collection of documents that define the standards for writing readable and idiomatic Go code at Google. Check these official [guide](https://google.github.io/styleguide/go/guide) and [best practices](https://google.github.io/styleguide/go/best-practices).
-* **Go Concurrency:** Prefer channels (`chan`) to pass state between the game loop and actor routines. Use `sync.RWMutex` exclusively when modifying the shared in-memory world state map.
-* **Error Handling:** Go: All errors must be explicitly checked and wrapped using `fmt.Errorf`. Python: Catch specific exceptions and implement retry loops for external API calls.
+### B. Inference Gateway (Python)
+*   **API Framework:** `FastAPI` (Asynchronous).
+*   **Schema/Validation:** `Pydantic V2`.
+*   **Graph DB:** Official `neo4j` Python driver.
+*   **Inference Clients:** `google-generativeai`, `anthropic`, `openai`.
+*   **Environment Management:** `python-dotenv`.
+*   **Testing:** `pytest` and `httpx` (for async testing).
+
+### C. Toolchain & Monorepo
+* **Orchestration:** `Nx` (Bun-integrated).
+* **Package Manager:** `Bun` (Strict rule: No npm/yarn).
+* **Frontend:** `Nuxt.js v4` (Vue) + `Tailwind CSS`.
+
+## 3. Go Architecture & DDD Patterns (simulation-engine)
+Santara strictly follows the ThreeDotsLabs Go Best Practices (DDD + Clean Architecture):
+
+### A. Layered Directory Structure
+* `internal/domain/`: Pure domain entities and business logic. This layer MUST NOT depend on any other layers (Domain Isolation). If an entity needs to persist itself, it defines a repository interface here.
+* `internal/app/`: Application layer coordinating use cases. Split into `commands` (write-heavy logic) and `queries` (read-heavy logic) for a CQRS-Lite approach.
+* `internal/adapters/`: Implementation details (Infrastructure). Concrete repository implementations (e.g., Neo4j, Redis, in-memory) and gRPC clients live here.
+* `internal/ports/`: Entry points to the app. gRPC servers, REST handlers, and CLI commands. They only talk to the `app` layer.
+
+### B. Repository Pattern Rules
+* **Small Interfaces:** Define interfaces where they are *used* (consumer-owned). Domain repos live in `domain`, Application repos live in `app`.
+* **Domain Entities only:** Repository interfaces MUST use Domain entities, never database models or gRPC types.
+* **Decoupled Persistence:** The simulation engine defaults to in-memory state. Adapters for persistent storage should be swappable.
+
+### C. CQRS-Lite Strategy
+* Use a central `Application` struct (in `internal/app/app.go`) to expose all available commands and queries.
+* Each Command/Query is a separate struct with a `Handler`. This reduces code bloat in a single "Service" file.
+
+## 4. Structural Definitions (Service Layouts)
+
+### A. Simulation Engine (`apps/sim-engine/`)
+Following ThreeDotsLabs Clean Architecture:
+*   `cmd/sim-engine/main.go`: Application entrypoint/dependency injection root.
+*   `internal/domain/`: Pure entities (Agent, Market). Defines repository interfaces.
+*   `internal/app/`: Use-case layer.
+    *   `internal/app/commands/`: Command handlers for state mutation (e.g., `ProcessTick`).
+    *   `internal/app/queries/`: Query handlers for reading state (e.g., `GetWorldSnapshot`).
+*   `internal/adapters/`: Concrete implementations of domain/app repositories (e.g., `Neo4jRepository`, `InMemoryState`).
+*   `internal/ports/`: Communication entrypoints (gRPC servers, CLI).
+
+### B. Inference Gateway (`apps/ai-engine/`)
+Following Python Clean Architecture (Adapters/Port approach):
+*   `src/api/`: FastAPI routers and gRPC Servicers (Ports).
+*   `src/domain/`: Data models (Pydantic) and pure logic.
+*   `src/usecases/`: Application logic orchestration (Services).
+*   `src/infrastructure/`: Repositories (Neo4j clients) and LLM clients (Adapters).
+
+### C. Contracts & Shared (`libs/`)
+*   `libs/rpc-contracts/`: Source `.proto` files for cross-service communication.
+
+## 5. Strict Coding Conventions
+* **Error Handling:** Use an "Error Slug" or standard error constants in the Domain (e.g., `ErrAgentHungry`). Wrap external errors but don't leak infrastructure details at the Domain level.
+* **Format:** Never use emojis.
+* **Typography:** Standard hyphens only.
+* **Go Concurrency:** Use the Tick-to-Think loop. Channels for communication, `sync.RWMutex` for safe state modification in the "Tick" thread.
+* **Testability & Mocking:** All external dependencies (Repositories, gRPC Clients) MUST use interfaces defined by the consumer-layer. Use `mockery` or handwritten mocks for unit testing the `app` layer in isolation from the `adapters`.
 * **Logging:** Use structured JSON logging across both Go and Python to allow the Nuxt.js frontend to parse telemetry easily.
