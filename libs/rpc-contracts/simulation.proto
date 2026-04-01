@@ -1,0 +1,397 @@
+// Santara Simulation Engine - gRPC Contracts
+// ============================================
+// This file defines the communication protocol between the Go Simulation Engine
+// and the Python AI Engine (Inference Gateway).
+//
+// Architecture:
+// - Go Engine: High-concurrency tick loop, agent orchestration
+// - Python Engine: LLM inference, Neo4j knowledge graph queries
+//
+// The "Tick-to-Think" Loop:
+// 1. Go sends AgentState to Python when agent needs complex reasoning
+// 2. Python queries Neo4j, calls Cloud LLM, returns ActionDecision
+// 3. Go applies the decision and continues simulation
+
+syntax = "proto3";
+
+package santara.simulation.v1;
+
+option go_package = "github.com/santara/sim-engine/gen/simulation/v1;simulationv1";
+
+import "google/protobuf/timestamp.proto";
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+// AgentStatus represents the current state of an agent in the simulation
+enum AgentStatus {
+  AGENT_STATUS_UNSPECIFIED = 0;
+  AGENT_STATUS_IDLE = 1;        // Agent is waiting
+  AGENT_STATUS_THINKING = 2;    // Agent is waiting for LLM response
+  AGENT_STATUS_ACTING = 3;      // Agent is executing an action
+  AGENT_STATUS_DEAD = 4;        // Agent has died
+}
+
+// ActionType represents the types of actions an agent can take
+enum ActionType {
+  ACTION_TYPE_UNSPECIFIED = 0;
+  ACTION_TYPE_IDLE = 1;         // Do nothing
+  ACTION_TYPE_MOVE = 2;         // Move to a location
+  ACTION_TYPE_PLANT = 3;        // Plant crops
+  ACTION_TYPE_HARVEST = 4;      // Harvest crops
+  ACTION_TYPE_SELL = 5;         // Sell at market
+  ACTION_TYPE_BUY = 6;          // Buy from market
+  ACTION_TYPE_EAT = 7;          // Consume food
+  ACTION_TYPE_REST = 8;         // Rest to recover health
+}
+
+// CropType represents types of agricultural products
+enum CropType {
+  CROP_TYPE_UNSPECIFIED = 0;
+  CROP_TYPE_RICE = 1;
+  CROP_TYPE_CORN = 2;
+  CROP_TYPE_CASSAVA = 3;
+  CROP_TYPE_SOYBEAN = 4;
+  CROP_TYPE_PEANUT = 5;
+  CROP_TYPE_VEGETABLE = 6;
+  CROP_TYPE_FRUIT = 7;
+}
+
+// MarketType represents classifications of markets
+enum MarketType {
+  MARKET_TYPE_UNSPECIFIED = 0;
+  MARKET_TYPE_LOCAL = 1;        // Village-level market
+  MARKET_TYPE_DISTRICT = 2;     // Kecamatan-level
+  MARKET_TYPE_REGIONAL = 3;     // Kabupaten-level
+}
+
+// =============================================================================
+// Core Messages
+// =============================================================================
+
+// Coordinates represents a geographic location
+message Coordinates {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+// Inventory represents crop quantities held by an agent
+message Inventory {
+  map<int32, double> items = 1;  // CropType enum value -> quantity in kg
+}
+
+// PriceList represents market prices for crops
+message PriceList {
+  map<int32, double> prices = 1;  // CropType enum value -> price per kg (IDR)
+}
+
+// =============================================================================
+// Agent Messages
+// =============================================================================
+
+// AgentState represents the complete state of an agent
+message AgentState {
+  string id = 1;                           // UUID
+  string name = 2;
+  string region_id = 3;                    // UUID of containing region
+  AgentStatus status = 4;
+
+  // Economic attributes
+  double cash = 5;                         // Current cash balance (IDR)
+  Inventory inventory = 6;
+  double land_size = 7;                    // Land size in hectares
+
+  // Health/survival attributes
+  double health = 8;                       // 0-100
+  double hunger = 9;                       // 0-100
+
+  // Location
+  Coordinates location = 10;
+
+  // Timestamps
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+
+  // Metadata
+  map<string, string> properties = 13;
+}
+
+// AgentSummary is a lightweight agent representation for list operations
+message AgentSummary {
+  string id = 1;
+  string name = 2;
+  AgentStatus status = 3;
+  Coordinates location = 4;
+  double health = 5;
+  double cash = 6;
+}
+
+// =============================================================================
+// Market Messages
+// =============================================================================
+
+// MarketState represents the complete state of a market
+message MarketState {
+  string id = 1;                           // UUID
+  string name = 2;
+  string region_id = 3;                    // UUID
+  MarketType market_type = 4;
+
+  // Location
+  Coordinates location = 5;
+
+  // Economic attributes
+  PriceList prices = 6;
+  PriceList demand = 7;
+  PriceList supply = 8;
+  double daily_volume = 9;                 // Max daily trading volume (kg)
+
+  // Timestamps
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+// =============================================================================
+// Region Messages
+// =============================================================================
+
+// RegionState represents an administrative region
+message RegionState {
+  string id = 1;                           // UUID
+  string name = 2;
+  string code = 3;                         // Administrative code
+  int32 level = 4;                         // 1=province, 2=kabupaten, etc.
+  string parent_id = 5;                    // UUID of parent region (optional)
+
+  Coordinates center = 6;
+  int64 population = 7;
+  double area_km2 = 8;
+}
+
+// =============================================================================
+// Action Messages
+// =============================================================================
+
+// ActionDecision represents the LLM's decision for an agent
+message ActionDecision {
+  string agent_id = 1;                     // UUID of the agent
+  ActionType action_type = 2;
+  string target_id = 3;                    // Optional target UUID (market, location)
+
+  // Action-specific parameters
+  map<string, string> parameters = 4;
+
+  // LLM reasoning
+  string reasoning = 5;
+  double confidence = 6;                   // 0.0 - 1.0
+
+  // Metadata
+  int64 tick = 7;                          // Tick when decision was requested
+  google.protobuf.Timestamp decided_at = 8;
+}
+
+// ActionResult represents the outcome of executing an action
+message ActionResult {
+  string agent_id = 1;
+  ActionType action_type = 2;
+  bool success = 3;
+  string error_message = 4;                // Populated if success=false
+
+  // Changes applied
+  AgentState updated_state = 5;
+
+  // Metadata
+  int64 tick = 6;
+  google.protobuf.Timestamp executed_at = 7;
+}
+
+// =============================================================================
+// World State Messages
+// =============================================================================
+
+// WorldState represents the complete simulation state
+message WorldState {
+  int64 current_tick = 1;
+  google.protobuf.Timestamp tick_timestamp = 2;
+
+  // Entity counts (for summary)
+  int32 total_agents = 3;
+  int32 active_agents = 4;
+  int32 thinking_agents = 5;
+  int32 dead_agents = 6;
+  int32 total_markets = 7;
+  int32 total_regions = 8;
+
+  // Simulation configuration
+  SimulationConfig config = 9;
+
+  // Statistics
+  WorldStatistics statistics = 10;
+}
+
+// WorldSnapshot includes all entity states (for full sync)
+message WorldSnapshot {
+  WorldState state = 1;
+  repeated AgentState agents = 2;
+  repeated MarketState markets = 3;
+  repeated RegionState regions = 4;
+}
+
+// SimulationConfig holds simulation parameters
+message SimulationConfig {
+  int32 tick_rate_ms = 1;                  // Target tick duration in milliseconds
+  int32 max_agents = 2;
+  int32 max_concurrent_thinking = 3;       // Max agents in THINKING state
+  double hunger_rate = 4;                  // Hunger increase per tick
+  double health_decay_rate = 5;            // Health decrease when hungry
+}
+
+// WorldStatistics holds aggregate statistics
+message WorldStatistics {
+  double total_cash = 1;                   // Total cash in economy
+  double total_inventory_value = 2;        // Total value of all inventories
+  double average_health = 3;
+  double average_cash = 4;
+  int64 total_trades = 5;
+  double total_trade_volume = 6;
+}
+
+// =============================================================================
+// Weather Messages
+// =============================================================================
+
+// WeatherConditions represents current weather state
+message WeatherConditions {
+  string condition = 1;                    // "clear", "rain", "storm"
+  double temperature_celsius = 2;
+  double humidity_percent = 3;
+  double rainfall_mm = 4;
+  string season = 5;                       // "dry", "wet"
+}
+
+// =============================================================================
+// Service Requests/Responses
+// =============================================================================
+
+// Request to get a decision for an agent
+message GetDecisionRequest {
+  AgentState agent = 1;
+  int64 current_tick = 2;
+  WeatherConditions weather = 3;
+
+  // Context hints (optional)
+  repeated MarketState nearby_markets = 4;
+  repeated AgentSummary nearby_agents = 5;
+}
+
+// Response containing the agent's decision
+message GetDecisionResponse {
+  ActionDecision decision = 1;
+  string context_summary = 2;              // Summary of context used
+}
+
+// Request for batch decisions
+message GetBatchDecisionsRequest {
+  repeated AgentState agents = 1;
+  int64 current_tick = 2;
+  WeatherConditions weather = 3;
+}
+
+// Response containing batch decisions
+message GetBatchDecisionsResponse {
+  map<string, ActionDecision> decisions = 1;  // agent_id -> decision
+  int32 total_requested = 2;
+  int32 total_successful = 3;
+}
+
+// Request to process a simulation tick
+message ProcessTickRequest {
+  int64 tick_number = 1;
+  WeatherConditions weather = 2;
+}
+
+// Response from processing a tick
+message ProcessTickResponse {
+  WorldState world_state = 1;
+  repeated ActionResult actions_executed = 2;
+  int32 agents_processed = 3;
+  int64 tick_duration_ms = 4;
+}
+
+// Request to get current world state
+message GetWorldStateRequest {
+  bool include_entities = 1;               // If true, return full snapshot
+}
+
+// Response with world state
+message GetWorldStateResponse {
+  oneof state {
+    WorldState summary = 1;
+    WorldSnapshot snapshot = 2;
+  }
+}
+
+// Request to spawn a new agent
+message SpawnAgentRequest {
+  string name = 1;
+  string region_id = 2;
+  Coordinates location = 3;
+  double initial_cash = 4;
+  Inventory initial_inventory = 5;
+}
+
+// Response from spawning an agent
+message SpawnAgentResponse {
+  AgentState agent = 1;
+}
+
+// =============================================================================
+// gRPC Services
+// =============================================================================
+
+// InferenceService is implemented by the Python AI Engine
+// Called BY the Go Simulation Engine to get agent decisions
+service InferenceService {
+  // Get a decision for a single agent
+  rpc GetDecision(GetDecisionRequest) returns (GetDecisionResponse);
+
+  // Get decisions for multiple agents (batch)
+  rpc GetBatchDecisions(GetBatchDecisionsRequest) returns (GetBatchDecisionsResponse);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// SimulationService is implemented by the Go Simulation Engine
+// Can be called by external clients (frontend, CLI) to control simulation
+service SimulationService {
+  // Process a single tick
+  rpc ProcessTick(ProcessTickRequest) returns (ProcessTickResponse);
+
+  // Get current world state
+  rpc GetWorldState(GetWorldStateRequest) returns (GetWorldStateResponse);
+
+  // Spawn a new agent
+  rpc SpawnAgent(SpawnAgentRequest) returns (SpawnAgentResponse);
+
+  // Stream world state updates (for real-time visualization)
+  rpc StreamWorldState(StreamWorldStateRequest) returns (stream WorldState);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// StreamWorldStateRequest for streaming updates
+message StreamWorldStateRequest {
+  int32 update_interval_ticks = 1;         // Send update every N ticks
+}
+
+// Health check messages
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  bool healthy = 1;
+  string version = 2;
+  string service_name = 3;
+}

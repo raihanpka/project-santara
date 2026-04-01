@@ -44,6 +44,7 @@ Santara is a hybrid, distributed simulation engine split into two microservices 
 *   **Inference Clients:** `google-generativeai`, `anthropic`, `openai`.
 *   **Environment Management:** `python-dotenv`.
 *   **Testing:** `pytest` and `httpx` (for async testing).
+*   **Package:** `uv` and always use .venv, but overall handled by Nx.
 
 ### C. Toolchain & Monorepo
 * **Orchestration:** `Nx` (Bun-integrated).

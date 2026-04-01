@@ -1,0 +1,12 @@
+# Environment
+*.env
+
+# OS Files
+*.DS_Store
+*__MACOSX
+
+# Temp
+*.tmp
+*.temp
+*.claude
+*.cursor

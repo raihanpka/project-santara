@@ -1,0 +1,38 @@
+{
+  "name": "santara",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-agent simulation engine for agrarian micro-economies",
+  "license": "GPL-3.0",
+  "scripts": {
+    "dev": "bun run dev:all",
+    "dev:ai": "make dev-ai",
+    "dev:sim": "make dev-sim",
+    "dev:frontend": "cd apps/frontend && bun run dev",
+    "dev:all": "concurrently \"make dev-ai\" \"make dev-frontend\"",
+    "build": "bun run build:all",
+    "build:frontend": "cd apps/frontend && bun run build",
+    "build:all": "bun run build:frontend",
+    "test": "make test",
+    "test:ai": "make test-ai",
+    "test:sim": "make test-sim",
+    "lint": "make lint",
+    "lint:ai": "make lint-ai",
+    "format": "make format-ai",
+    "proto": "make proto",
+    "install:all": "make install",
+    "clean": "make clean"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "nx": "^20.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "bun@1.1.0"
+}
