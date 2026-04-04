@@ -13,6 +13,7 @@ import json
 from typing import Any
 from uuid import UUID
 
+from src.config import get_locale, LocaleConfig
 from src.domain.repositories import LLMError
 from src.domain.schemas import (
     ActionDecision,
@@ -27,8 +28,13 @@ from src.usecases.graph_pruning import GraphPruner, PruningConfig
 
 logger = get_logger(__name__)
 
-# System prompt for agent decision-making
-AGENT_SYSTEM_PROMPT = """You are an AI controlling a farmer agent in an economic simulation of Indonesian agrarian micro-economies.
+
+def build_system_prompt(locale: LocaleConfig) -> str:
+    """Build the LLM system prompt based on locale configuration.
+
+    This allows the simulation to be adapted for different countries/regions.
+    """
+    return f"""You are an AI controlling a farmer agent in an economic simulation of {locale.country_name} agrarian micro-economies.
 
 Your goal is to help the farmer survive and prosper by making smart economic decisions.
 
@@ -41,6 +47,8 @@ The farmer can take these actions:
 - BUY: Buy supplies from a market
 - EAT: Consume food to reduce hunger
 - REST: Rest to recover health
+
+Currency: {locale.currency_code} ({locale.currency_symbol})
 
 Guidelines:
 1. Prioritize survival: Keep hunger below 70% and health above 30%
@@ -66,6 +74,7 @@ class AgenticRAG:
         neo4j_client: Neo4jClient,
         llm_router: LLMRouter,
         pruning_config: PruningConfig | None = None,
+        locale: LocaleConfig | None = None,
     ) -> None:
         """Initialize the Agentic RAG system.
 
@@ -73,10 +82,12 @@ class AgenticRAG:
             neo4j_client: Connected Neo4j client
             llm_router: Configured LLM router
             pruning_config: Optional pruning configuration
+            locale: Optional locale configuration (defaults to global)
         """
         self._neo4j = neo4j_client
         self._llm = llm_router
         self._pruner = GraphPruner(neo4j_client, pruning_config)
+        self._locale = locale or get_locale()
         self._decision_cache: dict[UUID, ActionDecision] = {}
 
     async def decide(
@@ -209,11 +220,11 @@ class AgenticRAG:
         """Build the prompt for LLM decision generation."""
         agent = context.agent_state
 
-        # Format nearby markets
+        # Format nearby markets with locale-aware currency
         markets_info = []
         for market in context.nearby_markets:
             prices_str = ", ".join(
-                f"{crop.value}: {price:.0f}"
+                f"{crop.value}: {self._locale.format_currency(price)}"
                 for crop, price in market.prices.items()
             )
             markets_info.append(
@@ -237,7 +248,7 @@ DETAILED STATE:
 - Location: ({agent.latitude:.4f}, {agent.longitude:.4f})
 - Health: {agent.health:.1f}%
 - Hunger: {agent.hunger:.1f}%
-- Cash: {agent.cash:.0f} IDR
+- Cash: {self._locale.format_currency(agent.cash)}
 - Inventory: {inventory_str}
 - Land Size: {agent.land_size:.1f} hectares
 
@@ -268,10 +279,12 @@ What should this farmer do?
         prompt: str,
     ) -> ActionDecision:
         """Generate a decision using the LLM."""
+        system_prompt = build_system_prompt(self._locale)
+
         response = await self._llm.generate_structured(
             prompt=prompt,
             response_schema=ActionDecision,
-            system_prompt=AGENT_SYSTEM_PROMPT,
+            system_prompt=system_prompt,
         )
 
         # Parse the response into ActionDecision

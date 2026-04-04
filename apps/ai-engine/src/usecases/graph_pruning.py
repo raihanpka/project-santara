@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+from src.config import get_locale, LocaleConfig
 from src.domain.schemas import (
     AgentContext,
     CommunityNode,
@@ -54,15 +55,18 @@ class GraphPruner:
         self,
         neo4j_client: Neo4jClient,
         config: PruningConfig | None = None,
+        locale: LocaleConfig | None = None,
     ) -> None:
         """Initialize the graph pruner.
 
         Args:
             neo4j_client: Connected Neo4j client
             config: Pruning configuration
+            locale: Optional locale configuration (defaults to global)
         """
         self._client = neo4j_client
         self._config = config or PruningConfig()
+        self._locale = locale or get_locale()
         self._communities_cache: list[CommunityNode] | None = None
 
     async def build_agent_context(
@@ -272,7 +276,7 @@ class GraphPruner:
         parts.append(
             f"Agent {agent.name} is at ({agent.latitude:.4f}, {agent.longitude:.4f}). "
             f"Health: {agent.health:.0f}%, Hunger: {agent.hunger:.0f}%, "
-            f"Cash: {agent.cash:.0f} IDR, Inventory: [{inventory_str}]."
+            f"Cash: {self._locale.format_currency(agent.cash)}, Inventory: [{inventory_str}]."
         )
 
         # Region context

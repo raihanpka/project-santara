@@ -14,7 +14,7 @@ from uuid import UUID
 from fastapi import APIRouter, FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
-from src.config import get_settings
+from src.config import get_settings, get_locale, LocaleConfig, LOCALE_PRESETS
 from src.domain.schemas import (
     ActionDecision,
     ActionType,
@@ -325,6 +325,106 @@ async def get_stats() -> StatsResponse:
     )
 
 
+# Locale/Settings router (for future Web UI configuration)
+locale_router = APIRouter(prefix="/locale", tags=["Localization"])
+
+
+class LocaleResponse(BaseModel):
+    """Current locale configuration response."""
+
+    config: LocaleConfig
+    available_presets: list[str]
+
+
+class LocaleUpdateRequest(BaseModel):
+    """Request to update locale settings (for future Web UI)."""
+
+    country_code: str | None = None
+    currency_code: str | None = None
+    currency_symbol: str | None = None
+    admin_level_names: dict[int, str] | None = None
+    default_crop_prices: dict[str, float] | None = None
+
+
+@locale_router.get("", response_model=LocaleResponse)
+async def get_current_locale() -> LocaleResponse:
+    """Get the current locale configuration.
+
+    This endpoint returns the active localization settings including
+    currency, administrative level names, and default prices.
+    """
+    locale = get_locale()
+    return LocaleResponse(
+        config=locale,
+        available_presets=list(LOCALE_PRESETS.keys()),
+    )
+
+
+@locale_router.get("/presets", response_model=dict[str, LocaleConfig])
+async def get_locale_presets() -> dict[str, LocaleConfig]:
+    """Get all available locale presets.
+
+    Returns preset configurations for different countries.
+    """
+    return {code: LocaleConfig(**data) for code, data in LOCALE_PRESETS.items()}
+
+
+@locale_router.get("/presets/{country_code}", response_model=LocaleConfig)
+async def get_locale_preset(country_code: str) -> LocaleConfig:
+    """Get a specific locale preset by country code."""
+    country_code = country_code.upper()
+    if country_code not in LOCALE_PRESETS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Locale preset not found for country code: {country_code}",
+        )
+    return LocaleConfig(**LOCALE_PRESETS[country_code])
+
+
+@locale_router.post("/preview", response_model=LocaleConfig)
+async def preview_locale_changes(request: LocaleUpdateRequest) -> LocaleConfig:
+    """Preview locale changes without applying them.
+
+    This endpoint allows the Web UI to show a preview of settings
+    before the user saves them.
+    """
+    # Start with current locale
+    current = get_locale()
+    preview_data = current.model_dump()
+
+    # Apply requested changes
+    if request.country_code:
+        # Load preset and merge
+        preset_data = LOCALE_PRESETS.get(request.country_code.upper(), {})
+        preview_data.update(preset_data)
+
+    if request.currency_code:
+        preview_data["currency_code"] = request.currency_code
+    if request.currency_symbol:
+        preview_data["currency_symbol"] = request.currency_symbol
+    if request.admin_level_names:
+        preview_data["admin_level_names"].update(request.admin_level_names)
+    if request.default_crop_prices:
+        preview_data["default_crop_prices"].update(request.default_crop_prices)
+
+    return LocaleConfig(**preview_data)
+
+
+@locale_router.get("/format-currency")
+async def format_currency_example(amount: float = 10000.0) -> dict[str, str]:
+    """Format a currency amount using current locale.
+
+    Useful for Web UI to show formatted examples.
+    """
+    locale = get_locale()
+    return {
+        "amount": amount,
+        "formatted": locale.format_currency(amount),
+        "currency_code": locale.currency_code,
+        "currency_symbol": locale.currency_symbol,
+    }
+
+
 # =============================================================================
 # Application Factory
 # =============================================================================
@@ -346,6 +446,7 @@ def create_app() -> FastAPI:
     app.include_router(decision_router)
     app.include_router(graph_router)
     app.include_router(stats_router)
+    app.include_router(locale_router)
 
     return app
 

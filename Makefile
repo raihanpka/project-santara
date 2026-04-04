@@ -2,7 +2,7 @@
 # ========================
 # This Makefile provides common development commands for the Santara project.
 
-.PHONY: help install install-ai dev-ai test-ai lint-ai proto clean
+.PHONY: help install install-ai dev-ai dev-ai-grpc dev-ai-both dev-sim dev-frontend test test-ai test-ai-integration test-sim lint lint-ai lint-sim format-ai proto ingest-osm ingest-bps docker-build docker-up docker-down clean
 
 # Default target
 help:
@@ -14,14 +14,17 @@ help:
 	@echo "  make install-ai     - Install AI Engine Python dependencies"
 	@echo ""
 	@echo "Development:"
-	@echo "  make dev-ai         - Run AI Engine in development mode"
+	@echo "  make dev-ai         - Run AI Engine REST API in development mode"
+	@echo "  make dev-ai-grpc    - Run AI Engine gRPC server"
+	@echo "  make dev-ai-both    - Run both REST and gRPC servers"
 	@echo "  make dev-sim        - Run Simulation Engine in development mode"
 	@echo "  make dev-frontend   - Run Frontend in development mode"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test           - Run all tests"
-	@echo "  make test-ai        - Run AI Engine tests"
-	@echo "  make test-sim       - Run Simulation Engine tests"
+	@echo "  make test               - Run all tests"
+	@echo "  make test-ai            - Run AI Engine tests"
+	@echo "  make test-ai-integration - Run AI Engine integration tests"
+	@echo "  make test-sim           - Run Simulation Engine tests"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  make lint           - Lint all code"
@@ -70,6 +73,16 @@ dev-ai:
 	. .venv/bin/activate && \
 	uvicorn src.api.rest_router:app --reload --host 0.0.0.0 --port 8000
 
+dev-ai-grpc:
+	cd apps/ai-engine && \
+	. .venv/bin/activate && \
+	python -m src.main --grpc
+
+dev-ai-both:
+	cd apps/ai-engine && \
+	. .venv/bin/activate && \
+	python -m src.main --both
+
 dev-sim:
 	cd apps/sim-engine && \
 	go run ./cmd/server/main.go
@@ -89,6 +102,11 @@ test-ai:
 	cd apps/ai-engine && \
 	. .venv/bin/activate && \
 	pytest tests/ -v --cov=src --cov-report=term-missing
+
+test-ai-integration:
+	cd apps/ai-engine && \
+	. .venv/bin/activate && \
+	pytest tests/test_integration.py -v -s
 
 test-sim:
 	cd apps/sim-engine && \
