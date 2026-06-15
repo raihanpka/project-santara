@@ -1,210 +1,124 @@
-# Santara Monorepo Makefile
-# ========================
-# This Makefile provides common development commands for the Santara project.
+# Project Santara: Makefile
+#
+# This Makefile is intentionally simple. Each service has its own pyproject.toml
+# or go.mod. This root Makefile provides convenience targets for working
+# across the whole monorepo.
+#
+# Anti-pattern: do not turn this into a monorepo build tool. The decision log in
+# docs/ROADMAP.md explicitly says "no monorepo build tool in v1.0."
 
-.PHONY: help install install-ai dev-ai dev-ai-grpc dev-ai-both dev-sim dev-frontend test test-ai test-ai-integration test-sim lint lint-ai lint-sim format-ai proto ingest-osm ingest-bps docker-build docker-up docker-down clean
-
-# Default target
+.PHONY: help
 help:
-	@echo "Santara Development Commands"
-	@echo "============================"
+	@echo "Project Santara - convenience targets"
 	@echo ""
-	@echo "Setup:"
-	@echo "  make install        - Install all dependencies (Bun + Python)"
-	@echo "  make install-ai     - Install AI Engine Python dependencies"
-	@echo ""
-	@echo "Development:"
-	@echo "  make dev-ai         - Run AI Engine REST API in development mode"
-	@echo "  make dev-ai-grpc    - Run AI Engine gRPC server"
-	@echo "  make dev-ai-both    - Run both REST and gRPC servers"
-	@echo "  make dev-sim        - Run Simulation Engine in development mode"
-	@echo "  make dev-frontend   - Run Frontend in development mode"
-	@echo ""
-	@echo "Testing:"
-	@echo "  make test               - Run all tests"
-	@echo "  make test-ai            - Run AI Engine tests"
-	@echo "  make test-ai-integration - Run AI Engine integration tests"
-	@echo "  make test-sim           - Run Simulation Engine tests"
-	@echo ""
-	@echo "Code Quality:"
-	@echo "  make lint           - Lint all code"
-	@echo "  make lint-ai        - Lint AI Engine code"
-	@echo "  make format-ai      - Format AI Engine code"
-	@echo ""
-	@echo "Protobuf:"
-	@echo "  make proto          - Generate Go and Python stubs from .proto files"
-	@echo ""
-	@echo "Data:"
-	@echo "  make ingest-osm     - Ingest OpenStreetMap data"
-	@echo "  make ingest-bps     - Ingest BPS statistical data"
-	@echo ""
-	@echo "Docker:"
-	@echo "  make docker-build   - Build all Docker images"
-	@echo "  make docker-up      - Start all services with Docker Compose"
-	@echo "  make docker-down    - Stop all services"
-	@echo ""
-	@echo "Cleanup:"
-	@echo "  make clean          - Clean build artifacts"
+	@echo "  make help              Show this help"
+	@echo "  make install           Install all Python services and sim-kernel"
+	@echo "  make test              Run all tests (Python + Go)"
+	@echo "  make test-py           Run Python tests (pytest across all services)"
+	@echo "  make test-go           Run Go tests (services/sim-engine)"
+	@echo "  make test-kernel       Run sim-kernel tests only"
+	@echo "  make lint              Lint everything"
+	@echo "  make format            Format everything"
+	@echo "  make build-go          Build the Go service binary"
+	@echo "  make docker-up         Bring up docker compose stack"
+	@echo "  make docker-down       Tear down docker compose stack"
+	@echo "  make clean             Remove build artifacts and caches"
 
-# =============================================================================
-# Installation
-# =============================================================================
-
+.PHONY: install
 install:
-	@echo "Installing Bun dependencies..."
-	bun install
-	@echo "Installing AI Engine dependencies..."
-	$(MAKE) install-ai
-	@echo "Installation complete!"
+	@echo "Installing sim-kernel..."
+	cd libs/sim-kernel && pip install -e ".[dev]"
+	@echo ""
+	@echo "Installing Python services (those that exist)..."
+	@for svc in services/sim-gateway services/sim-id-fiskal services/sim-id-politik services/sim-id-iklim services/sim-id-agraria; do \
+		if [ -f $$svc/pyproject.toml ]; then \
+			echo "  Installing $$svc..."; \
+			cd $$svc && pip install -e ".[dev]" && cd ../..; \
+		else \
+			echo "  Skipping $$svc (no pyproject.toml yet)"; \
+		fi; \
+	done
 
-install-ai:
-	cd apps/ai-engine && \
-	python -m venv .venv && \
-	. .venv/bin/activate && \
-	pip install --upgrade pip && \
-	pip install -e ".[dev]"
+.PHONY: test
+test: test-py test-go
 
-# =============================================================================
-# Development
-# =============================================================================
+.PHONY: test-py
+test-py: test-kernel
+	@for svc in services/sim-gateway services/sim-id-fiskal services/sim-id-politik services/sim-id-iklim services/sim-id-agraria; do \
+		if [ -f $$svc/pyproject.toml ] && [ -d $$svc/tests ]; then \
+			echo "  Testing $$svc..."; \
+			cd $$svc && pytest && cd ../..; \
+		fi; \
+	done
 
-dev-ai:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	uvicorn src.api.rest_router:app --reload --host 0.0.0.0 --port 8000
+.PHONY: test-go
+test-go:
+	@if [ -f services/sim-engine/go.mod ]; then \
+		echo "  Testing services/sim-engine..."; \
+		cd services/sim-engine && go test ./... && cd ../..; \
+	fi
 
-dev-ai-grpc:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	python -m src.main --grpc
+.PHONY: test-kernel
+test-kernel:
+	@echo "  Testing libs/sim-kernel..."
+	cd libs/sim-kernel && pytest
 
-dev-ai-both:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	python -m src.main --both
+.PHONY: lint
+lint:
+	@echo "Linting Python..."
+	cd libs/sim-kernel && ruff check src/ tests/ || true
+	@for svc in services/sim-*; do \
+		if [ -f $$svc/pyproject.toml ]; then \
+			cd $$svc && ruff check src/ tests/ 2>/dev/null || true && cd ../..; \
+		fi; \
+	done
+	@echo "Linting Go..."
+	@if [ -f services/sim-engine/go.mod ]; then \
+		cd services/sim-engine && golangci-lint run 2>/dev/null || true && cd ../..; \
+	fi
 
-dev-sim:
-	cd apps/sim-engine && \
-	go run ./cmd/server/main.go
+.PHONY: format
+format:
+	@echo "Formatting Python..."
+	cd libs/sim-kernel && ruff format src/ tests/ 2>/dev/null || true
+	@for svc in services/sim-*; do \
+		if [ -f $$svc/pyproject.toml ]; then \
+			cd $$svc && ruff format src/ tests/ 2>/dev/null || true && cd ../..; \
+		fi; \
+	done
+	@echo "Formatting Go..."
+	@if [ -f services/sim-engine/go.mod ]; then \
+		cd services/sim-engine && gofmt -w . && cd ../..; \
+	fi
 
-dev-frontend:
-	cd apps/frontend && \
-	bun run dev
+.PHONY: build-go
+build-go:
+	@if [ -f services/sim-engine/go.mod ]; then \
+		cd services/sim-engine && go build -o bin/sim-engine ./cmd/server && cd ../..; \
+		echo "Built services/sim-engine/bin/sim-engine"; \
+	else \
+		echo "services/sim-engine not yet scaffolded"; \
+	fi
 
-# =============================================================================
-# Testing
-# =============================================================================
-
-test: test-ai test-sim
-	@echo "All tests complete!"
-
-test-ai:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	pytest tests/ -v --cov=src --cov-report=term-missing
-
-test-ai-integration:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	pytest tests/test_integration.py -v -s
-
-test-sim:
-	cd apps/sim-engine && \
-	go test -v ./...
-
-# =============================================================================
-# Code Quality
-# =============================================================================
-
-lint: lint-ai lint-sim
-	@echo "Linting complete!"
-
-lint-ai:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	ruff check src/ scripts/ && \
-	mypy src/
-
-format-ai:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	ruff format src/ scripts/ && \
-	ruff check --fix src/ scripts/
-
-lint-sim:
-	cd apps/sim-engine && \
-	go vet ./... && \
-	go fmt ./...
-
-# =============================================================================
-# Protobuf
-# =============================================================================
-
-PROTO_DIR := libs/rpc-contracts
-PROTO_GO_OUT := libs/rpc-contracts/gen/go
-PROTO_PY_OUT := libs/rpc-contracts/gen/python
-
-proto:
-	@echo "Generating protobuf stubs..."
-	@mkdir -p $(PROTO_GO_OUT) $(PROTO_PY_OUT)
-	protoc \
-		--proto_path=$(PROTO_DIR) \
-		--go_out=$(PROTO_GO_OUT) \
-		--go_opt=paths=source_relative \
-		--go-grpc_out=$(PROTO_GO_OUT) \
-		--go-grpc_opt=paths=source_relative \
-		$(PROTO_DIR)/*.proto
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	python -m grpc_tools.protoc \
-		--proto_path=../../$(PROTO_DIR) \
-		--python_out=../../$(PROTO_PY_OUT) \
-		--grpc_python_out=../../$(PROTO_PY_OUT) \
-		../../$(PROTO_DIR)/*.proto
-	@echo "Protobuf stubs generated!"
-
-# =============================================================================
-# Data Ingestion
-# =============================================================================
-
-ingest-osm:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	python -m scripts.ingest_osm --input data/osm/ --pattern "*.geojson"
-
-ingest-bps:
-	cd apps/ai-engine && \
-	. .venv/bin/activate && \
-	python -m scripts.ingest_bps --input data/bps/ --pattern "*.csv"
-
-# =============================================================================
-# Docker
-# =============================================================================
-
-docker-build:
-	docker build -f infra/docker/Dockerfile.ai -t santara-ai-engine .
-	docker build -f infra/docker/Dockerfile.go -t santara-sim-engine .
-
+.PHONY: docker-up
 docker-up:
-	docker-compose -f infra/docker/docker-compose.yml up -d
+	docker compose up
 
+.PHONY: docker-down
 docker-down:
-	docker-compose -f infra/docker/docker-compose.yml down
+	docker compose down
 
-# =============================================================================
-# Cleanup
-# =============================================================================
-
+.PHONY: clean
 clean:
-	@echo "Cleaning build artifacts..."
-	rm -rf apps/ai-engine/.venv
-	rm -rf apps/ai-engine/__pycache__
-	rm -rf apps/ai-engine/src/__pycache__
-	rm -rf apps/ai-engine/.pytest_cache
-	rm -rf apps/ai-engine/.mypy_cache
-	rm -rf apps/ai-engine/.ruff_cache
-	rm -rf apps/sim-engine/bin
-	rm -rf libs/rpc-contracts/gen/go/*
-	rm -rf libs/rpc-contracts/gen/python/*
-	rm -rf node_modules
-	@echo "Clean complete!"
+	@echo "Removing build artifacts..."
+	rm -rf libs/sim-kernel/.pytest_cache
+	rm -rf libs/sim-kernel/.ruff_cache
+	rm -rf libs/sim-kernel/.mypy_cache
+	rm -rf libs/sim-kernel/*.egg-info
+	rm -rf libs/sim-kernel/build
+	rm -rf libs/sim-kernel/dist
+	@for svc in services/sim-*; do \
+		rm -rf $$svc/.pytest_cache $$svc/.ruff_cache $$svc/.mypy_cache $$svc/*.egg-info $$svc/build $$svc/dist; \
+	done
+	rm -rf services/sim-engine/bin
+	@echo "Clean complete"

@@ -1,189 +1,230 @@
-# Project Santara: Multi-Agent GraphRAG Simulation for Agrarian Micro-Economies
+# Project Santara
 
-Project Santara is a blazing fast simulation engine. It leverages Large Language Models (LLMs) and embedded Knowledge Graphs to model supply chain dynamics, food sovereignty, and economic resilience. By utilizing state-of-the-art Agentic RAG and Cross-Agent KV Cache Sharing, the system runs massive multi-agent simulations efficiently, replacing rigid mathematical forecasting with emergent, behavioral modeling.
+Open-source simulation platform for Indonesia's economic, political, climatic, and agrarian systems. Built as a hybrid microservices ecosystem: Python services for LLM reasoning and protocol exposure, a Go service for the simulation tick engine, and a shared Python library called `sim-kernel`. The project is under active development. The codebase is being rebuilt from scratch. The new structure under `services/` and `libs/` is scaffold only.
 
-## Scientific Foundation & Research Validation
+For the Indonesian version, see [PANDUAN.md](./docs-id/PANDUAN.md).
 
-The architecture of this project is grounded in recent breakthroughs in Multi-Agent Systems (MAS) and Graph Retrieval-Augmented Generation (GraphRAG). Research confirms that combining structural graph data with LLM reasoning drastically reduces hallucination and enables complex, multi-hop economic simulations.
+## Table of Contents
 
-* **Hybrid Multi-Agent GraphRAG for Complex Systems:** Recent studies validate that modular agent pipelines combining symbolic graph traversal with dense vector retrieval outperform standard RAG in highly structured environments (Papageorgiou et al., 2025).
-* **LLM-Driven Supply Chain Consensus:** Literature on InvAgent proves that LLM agents can effectively balance material, processing, and inventory costs, autonomously finding consensus to reduce the bullwhip effect in supply chains (Yinzhu Quan and Zefang Liu, 2025).
-* **Agricultural Knowledge Graph Construction:** Frameworks like FARM validate the use of multi-agent workflows to automate the construction of agricultural knowledge graphs, proving that complex environmental and economic dependencies can be mapped efficiently for AI reasoning (Papageorgiou et al., 2025).
+1. What is Santara
+2. Why Santara Exists
+3. Current State
+4. Quick Start
+5. Core Services
+6. Use Cases
+7. Architecture
+8. Tech Stack
+9. Repository Layout
+10. Documentation
+11. Contributing
+12. License
+13. Citation
 
-## How It Works
+## 1. What is Santara
 
-Santara utilizes a hybrid architecture to maximize both speed and cognitive capabilities. The data and simulation engines run locally, while complex reasoning can be processed locally or securely routed to state-of-the-art cloud LLMs based on hardware constraints. The simulation operates in four primary steps:
+Project Santara is a small constellation of services that simulate real-world systems under stress. The first four sim-id services focus on Indonesia: fiscal stress test, political dynamics, climate emergency, and agrarian micro-economy. A shared library called `sim-kernel` provides the domain models, event schemas, A2A Agent Cards, and MCP tool base. Every service is an independent package with its own `pyproject.toml` (for Python) or `go.mod` (for Go).
 
-1. **Local Initialization:** The user uploads regional OpenStreetMap files and agricultural CSV data. Santara instantly parses this data into an embedded Neo4j knowledge graph.
-2. **Scenario Configuration:** The user defines the agent swarm and injects shock variables, such as a sudden 25% spike in fertilizer costs or a localized flood. 
-3. **Execution Phase:** The simulation runs dynamically while the user watches a live, interactive visualization on the Nuxt.js dashboard. The Go concurrency engine ticks through simulated days as agents query market prices via the local graph and route complex negotiation and survival logic to the configured LLM.
-4. **Post-Mortem Analysis:** The simulation halts and generates a deterministic Post-Mortem Report using an LLM-as-a-Judge framework. This report highlights exact economic failure points and monopolies, allowing users to propose real-world interventions before crises occur.
+The platform is built in two tiers. The Python tier handles language-model reasoning, HTTP APIs, A2A endpoints, MCP tools, and data ingestion from public sources. The Go tier handles the actual tick simulation. The two tiers communicate over gRPC. Both tiers are necessary.
 
----
+## 2. Why Santara Exists
 
-## Project Structure
+Indonesia in mid-2026 is experiencing compounding shocks: a currency at historic lows, a stock market in correction, an emergency rate hike cycle, a fuel price jump that triggered student protests, a flagship nutrition program under corruption investigation, and a climate forecast of severe El Nino. Policy makers, journalists, and citizens need tools that let them ask "what if" questions and get answers grounded in real data, fast, and without requiring a research grant.
+
+Existing tools either focus on social media prediction (mirofish, OASIS) or on generic agent frameworks (LangGraph, Pydantic AI). None of them address Indonesia's live economic and political stress with verifiable, open-source, locally deployable infrastructure. Santara tries to fill that gap. The attempt may not succeed.
+
+## 3. Current State
+
+The project is at v0.0.0 (pre-alpha). The codebase is being rebuilt from scratch. The new structure under `services/` and `libs/` is scaffold only. The legacy code under `apps/` has been removed. See [CHANGELOG.md](./CHANGELOG.md) v0.0.0 entry for the full reset rationale.
+
+What is built:
+
+- A clean directory structure with `services/`, `libs/`, `docs/`, `docs-id/`, root `Makefile`, root documentation files
+- `services/sim-engine/` has a `go.mod` for `github.com/raihanpka/sim-engine` and a README. No Go code yet.
+- `libs/sim-kernel/` has a `pyproject.toml` ready to publish. Modules are not yet implemented.
+- `libs/rpc-contracts/` is an empty directory with a README. No `.proto` files yet.
+- Root `Makefile` with convenience targets.
+- Documentation under `docs/` (English) and `docs-id/` (Indonesian).
+- `docs/COMMIT_STYLE.md` and root `RELEASE.md` defining commit and release standards.
+
+What is not yet built:
+
+- Everything. The integration test from the legacy codebase is gone. The Go engine code is gone. The Python AI engine code is gone.
+
+See [docs/ROADMAP.md](./docs/ROADMAP.md) for the full plan and timeline.
+
+## 4. Quick Start
+
+You need Docker and Docker Compose on a machine with at least 4 GB of free RAM. You need a Go toolchain if you want to build the simulation engine from source. You need a Python 3.12 toolchain if you want to build the Python services from source.
 
 ```
-project-santara/
-├── apps/
-│   ├── ai-engine/        # Python: Inference Gateway (FastAPI + gRPC)
-│   ├── sim-engine/       # Go: Simulation Engine (High-concurrency tick loop)
-│   └── frontend/         # Nuxt.js: Real-time Dashboard
-├── libs/
-│   └── rpc-contracts/    # Protobuf gRPC contracts
-├── infra/
-│   └── docker/           # Docker configurations
-├── Makefile               # Development commands
-└── .docs/                # Architecture documentation
-```
-
-## Technologies Stack
-
-This project utilizes open-source frameworks and libraries to ensure flexible deployment and high performance.
-
-* **Simulation Engine:** Go (Golang) for high-performance, asynchronous multi-agent orchestration.
-* **AI Orchestration:** Python, FastAPI, and Pydantic.
-* **LLM Inference:** Cloud-agnostic integration utilizing `LLM_SERVICE`, `LLM_MODEL`, and `LLM_API_KEY` for seamless connection to providers like Google Gemini, Anthropic Claude, or OpenAI.
-* **Knowledge Graph:** Neo4j for zero-network-overhead graph traversal and data storage.
-* **Frontend:** Nuxt.js v4 (Vue) and Tailwind CSS.
-* **Tooling:** Bun and Nx Monorepo.
-
-## Prerequisites
-
-Before installation, ensure you have the following installed:
-
-* **Bun** >= 1.1.0 ([install guide](https://bun.sh/docs/installation))
-* **Go** >= 1.22 ([install guide](https://go.dev/doc/install))
-* **Python** >= 3.11 ([install guide](https://www.python.org/downloads/))
-* **Neo4j** >= 5.0 ([install guide](https://neo4j.com/docs/operations-manual/current/installation/))
-* **Protobuf Compiler** (optional, for gRPC development)
-
-## Installation
-
-Clone the repository and install all dependencies:
-
-```bash
-git clone https://github.com/raihanpka/project-santara.git
+git clone https://github.com/raihanpka/project-santara
 cd project-santara
-
-# Install all dependencies (Bun + Python)
+cp .env.example .env
 make install
+make test
 ```
 
-Or install components individually:
+The `make install` target installs sim-kernel and any Python service that has a `pyproject.toml`. The `make test` target runs the Python test suite and the Go test suite (when sim-engine has tests).
 
-```bash
-# Install Bun/Node dependencies
-bun install
+To bring up the planned Docker Compose stack (which is not yet authored):
 
-# Install Python AI Engine dependencies
-cd apps/ai-engine
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+```
+make docker-up
 ```
 
-## Configuration
+When the services are implemented, they will be reachable as follows.
 
-Copy the environment template and configure your settings:
+- sim-gateway at http://localhost:8000 with OpenAPI docs
+- sim-id-fiskal at http://localhost:8001
+- sim-id-politik at http://localhost:8002
+- sim-id-iklim at http://localhost:8003
+- sim-id-agraria at http://localhost:8004
+- sim-engine (Go gRPC) at localhost:50052
 
-```bash
-cp apps/ai-engine/.env.example apps/ai-engine/.env
+The Docker Compose stack is not yet authored. It will be added in Phase 0 alongside the sim-engine scaffold.
+
+## 5. Core Services
+
+| Service | Language | Tier | What it does | Status |
+|---|---|---|---|---|
+| sim-kernel | Python (library) | Shared | Pydantic models, event schemas, MCP base, A2A base, locales | Phase 0 scaffold, `pyproject.toml` published, modules not yet implemented |
+| sim-engine | Go | Performance | Tick simulation, agent state, market dynamics, worker pool, gRPC server | Phase 0 scaffold, `go.mod` published, no Go code yet |
+| sim-gateway | Python | Intelligence | A2A router, MCP server hub, JWT auth, WebSocket telemetry | Phase 1, scaffold only |
+| sim-id-fiskal | Python | Intelligence | Indonesia fiscal stress test, rupiah shock, BI rate impact, BBM impact, subsidi allocation | Phase 1, scaffold only, first anchor problem |
+| sim-id-politik | Python | Intelligence | Indonesia political dynamics, kabinet reshuffle, demo propagation, electoral scenarios | Phase 2, scaffold only |
+| sim-id-iklim | Python | Intelligence | Indonesia climate emergency, El Nino projection, karhutla cascade, banjir response | Phase 2, scaffold only |
+| sim-id-agraria | Python | Intelligence | Indonesia agrarian micro-economy, tengkulak chain, Reforma Agraria scenarios | Phase 4, scaffold only |
+| sim-dashboard | TypeScript | Optional | React 19 and Tailwind v4 web UI | Phase 3, not yet scaffold |
+
+The v0.1.0 release ships sim-engine (with the gRPC server implemented), sim-kernel (with all modules implemented), sim-gateway, and sim-id-fiskal. The other sim-id services follow in Phase 2 and Phase 4. The dashboard is optional throughout.
+
+## 6. Use Cases
+
+The first four anchor problems are derived from live Indonesian events in Q2 2026. They are scenarios, not commitments. Whether the platform can answer them well is a question the public evaluations will answer.
+
+### Anchor 1: Fiscal stress test
+
+Question: "Apa yang terjadi ke inflasi kalau Pertamax naik 30 persen lagi?"
+
+### Anchor 2: Political reaction
+
+Question: "Apa dampak MBG terhadap swing voter di 2029?"
+
+### Anchor 3: Climate cascade
+
+Question: "Kapan karhutla Riau menjadi krisis haze lintas batas?"
+
+### Anchor 4: Agrarian distribution
+
+Question: "Koperasi Desa Merah Putih vs tengkulak, mana yang lebih tinggi kesejahteraannya?"
+
+## 7. Architecture
+
+The architecture is documented in detail in [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md). The short version.
+
+- Two tiers: Python intelligence tier plus Go performance tier
+- Five to seven small Python services, each under 1,500 lines of its own logic
+- One Go service at `services/sim-engine/` doing the tick simulation
+- sim-kernel shared Python library, the only thing every Python service imports
+- A2A Protocol (Linux Foundation) for inter-service questions between Python services
+- gRPC for the Python to Go boundary, using the protobuf contracts in `libs/rpc-contracts/`
+- MCP (Linux Foundation) for tool and data exposure
+- Redis Streams for events, with the outbox pattern for at-least-once delivery
+- PostgreSQL per service, no cross-service joins
+- Docker Compose for local and single-node deployment, K3s for multi-node
+
+## 8. Tech Stack
+
+| Layer | Choice | Reason |
+|---|---|---|
+| Intelligence language | Python 3.12 | Pattern matching, perf, type parameters, hiring pool |
+| Performance language | Go 1.22+ | Standard library goroutines, zerolog, low memory footprint |
+| Web (Python) | FastAPI + Uvicorn | Async, Pydantic v2 native, OpenAPI free |
+| Python to Go boundary | gRPC + Protobuf | Lower latency, strong typing, existing tooling |
+| Agent framework | Pydantic AI | Type safe, OTel native, A2A and MCP built in |
+| Tick engine | Custom Go at services/sim-engine | Go fits the hot loop |
+| LLM default local | Llama 4 8B Instruct | Single consumer GPU, Apache 2.0 |
+| LLM default Bahasa | Sahabat-AI 70B | Best open-source Bahasa model, on Hugging Face |
+| LLM cloud | Anthropic Claude, OpenAI GPT | Opt-in via API key |
+| Inter-service (Python) | A2A Protocol v1.0.1 | Linux Foundation standard |
+| Tool and data | MCP with Streamable HTTP | Linux Foundation standard |
+| Event bus | Redis 7 Streams | At-least-once via outbox, single binary |
+| Database | PostgreSQL 16 per service | No shared schema, no joins |
+| Driver (Python) | asyncpg | Native async, no ORM |
+| Driver (Go) | pgx (planned for persistent state) | Standard for Go |
+| Telemetry | OpenTelemetry + Structlog + zerolog | Vendor neutral, Grafana compatible |
+| Tests | pytest + httpx + respx (Python), testing + testify (Go) | Standard, async-capable |
+| Deployment | Docker Compose, K3s | Local-first, single binary upgrade path |
+| Datasets | Hugging Face Hub | Curated, real data, AI as curator |
+| Python library | PyPI | pip install sim-kernel |
+| Docker images | GitHub Container Registry | Native to GitHub, multi-arch, free |
+| License | Apache 2.0 (new code) | Explicit patent grant, commercial friendly |
+| Legacy license | GNU GPL 3.0 (LICENSE file) | Preserved as committed, see CHANGELOG |
+
+## 9. Repository Layout
+
+```mermaid
+flowchart TB
+    Root[project-santara/]
+    Root --> Services[services/]
+    Root --> Libs[libs/]
+    Root --> Docs[docs/]
+    Root --> DocsId[docs-id/]
+    Root --> Readme[README.md]
+    Root --> Contributing[CONTRIBUTING.md]
+    Root --> Release[RELEASE.md]
+    Root --> Coc[CODE_OF_CONDUCT.md]
+    Root --> Security[SECURITY.md]
+    Root --> Changelog[CHANGELOG.md]
+    Root --> License[LICENSE]
+    Root --> Makefile[Makefile]
+    Docs --> AgentsMd[AGENTS.md]
+    Docs --> ArchMd[ARCHITECTURE.md]
+    Docs --> CommitStyle[COMMIT_STYLE.md]
+    Docs --> RoadmapMd[ROADMAP.md]
+    DocsId --> Panduan[PANDUAN.md]
 ```
 
-Edit `apps/ai-engine/.env` with your credentials:
+For the detailed layout of each service and library, see the README at the root of that directory.
 
-```env
-# LLM Provider: gemini, anthropic, or openai
-LLM_SERVICE=gemini
-LLM_MODEL=gemini-2.0-flash
-LLM_API_KEY=your-api-key-here
+## 10. Documentation
 
-# Neo4j Connection
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your-password-here
+- [docs/ROADMAP.md](./docs/ROADMAP.md) - phased roadmap, decision log
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) - canonical architecture, service map, tech stack
+- [docs/AGENTS.md](./docs/AGENTS.md) - guidance for AI coding assistants
+- [docs/COMMIT_STYLE.md](./docs/COMMIT_STYLE.md) - commit message convention derived from git history
+- [docs-id/PANDUAN.md](./docs-id/PANDUAN.md) - Indonesian version of this README
+- [RELEASE.md](./RELEASE.md) - versioning and packaging strategy
+- [CONTRIBUTING.md](./CONTRIBUTING.md) - how to contribute, code style, PR process
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) - community standards
+- [SECURITY.md](./SECURITY.md) - how to report vulnerabilities
+- [CHANGELOG.md](./CHANGELOG.md) - release history
+
+## 11. Contributing
+
+We welcome contributions in code, documentation, translation, scenarios, bug reports, and feature proposals. The full contributor guide is in [CONTRIBUTING.md](./CONTRIBUTING.md). The short version.
+
+1. Read the [Code of Conduct](./CODE_OF_CONDUCT.md)
+2. Read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and [docs/ROADMAP.md](./docs/ROADMAP.md)
+3. Look for issues labeled `good first issue` or `help wanted`
+4. Open a draft pull request early to get feedback
+5. Run the full test suite before requesting review
+
+## 12. License
+
+Project Santara is licensed under the Apache License 2.0. The full license text is in the [LICENSE](./LICENSE) file at the repository root. The Apache 2.0 license includes an explicit patent grant, allows commercial use, and requires preservation of the copyright notice and the license terms in any redistribution. The previous GNU GPL 3.0 text inherited from the legacy codebase has been removed. See [CHANGELOG.md](./CHANGELOG.md) v0.0.0 entry for the full license history.
+
+## 13. Citation
+
+If you use Project Santara in academic work, please cite the platform as follows.
+
 ```
-
-## Local Development
-
-Start the development servers:
-
-```bash
-# Run AI Engine (Python FastAPI)
-make dev-ai
-
-# Run Simulation Engine (Go) - in a separate terminal
-make dev-sim
-
-# Run Frontend (Nuxt.js) - in a separate terminal
-make dev-frontend
-
-# Or run all services concurrently
-bun run dev
-```
-
-### Available Commands
-
-| Command | Description |
-|---------|-------------|
-| `make install` | Install all dependencies |
-| `make dev-ai` | Run AI Engine on http://localhost:8000 |
-| `make dev-sim` | Run Simulation Engine |
-| `make dev-frontend` | Run Frontend on http://localhost:3000 |
-| `make test` | Run all tests |
-| `make test-ai` | Run Python tests with coverage |
-| `make test-sim` | Run Go tests |
-| `make lint` | Lint all code |
-| `make proto` | Generate gRPC stubs from .proto files |
-| `make clean` | Clean build artifacts |
-
-### Data Ingestion
-
-Ingest geographic and statistical data into the knowledge graph:
-
-```bash
-# Ingest OpenStreetMap GeoJSON data
-make ingest-osm
-
-# Ingest CSV statistical data
-make ingest-bps
-```
-
-### API Documentation
-
-Once the AI Engine is running, access the interactive API docs at:
-
-* **Swagger UI:** http://localhost:8000/docs
-* **ReDoc:** http://localhost:8000/redoc
-
----
-
-## Credits & Citations
-
-**Project Lead:**
-Raihan Putra Kirana. (2026). *Project Santara: Multi-Agent GraphRAG Simulation for Agrarian Micro-Economies*. Project Concept and Developer.
-
-**Supporting Literature:**
-
-* **Anthropic (2025):** [How we built our multi-agent research system](https://www.anthropic.com/news/research-multi-agent-systems)
-* **Yinzhu Quan and Zefang Liu (2025):** [InvAgent: A Large Language Model based Multi-Agent System for Inventory Management in Supply Chains](https://doi.org/10.48550/arXiv.2407.11384)
-* **Papageorgiou, G., Sarlis, V., Maragoudakis, M., & Tjortjis, C. (2025):** [Hybrid Multi-Agent GraphRAG for E-Government: Towards a Trustworthy AI Assistant](https://doi.org/10.3390/app15116315)
-
-## Citation
-
-```bibtex
-@misc{raihan2026projectsantara,
-  author       = {Raihan Putra Kirana},
-  title        = {Project Santara: Multi-Agent GraphRAG Simulation for Agrarian Micro-Economies},
-  year         = {2026},
-  note         = {It leverages Large Language Models (LLMs) and embedded Knowledge Graphs to model supply chain dynamics, food sovereignty, and economic resilience},
-  howpublished = {\url{[https://github.com/raihanpka/project-santara](https://github.com/raihanpka/project-santara)}}
+@misc{project-santara-2026,
+  author = {Raihan Putra Kirana},
+  title  = {Project Santara: An open-source hybrid microservices simulation platform for Indonesia and the Global South},
+  year   = {2026},
+  url    = {https://github.com/raihanpka/project-santara}
 }
 ```
 
----
-
-## License
-
-This project is licensed under the `GNU General Public License v3.0`, see the [LICENSE](LICENSE) file for details.
+For datasets hosted on the Hugging Face Hub, cite the dataset card directly. Each dataset card includes a citation block with the source URLs and the version of the loader that produced it.
