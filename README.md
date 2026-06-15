@@ -34,67 +34,81 @@ Existing tools either focus on social media prediction (mirofish, OASIS) or on g
 
 ## 3. Current State
 
-The project is at v0.0.0 (pre-alpha). The codebase is being rebuilt from scratch. The new structure under `services/` and `libs/` is scaffold only. The legacy code under `apps/` has been removed. See [CHANGELOG.md](./CHANGELOG.md) v0.0.0 entry for the full reset rationale.
+The project is at v0.1.0 (pre-alpha). The first working release of the Python intelligence tier and the Go performance tier is shipped. The first anchor problem (Pertamax 30 percent shock) is answered end to end. See [CHANGELOG.md](./CHANGELOG.md) v0.1.0 entry for the full release notes and v0.0.0 entry for the reset rationale.
 
 What is built:
 
-- A clean directory structure with `services/`, `libs/`, `docs/`, `docs-id/`, root `Makefile`, root documentation files
-- `services/sim-engine/` has a `go.mod` for `github.com/raihanpka/sim-engine` and a README. No Go code yet.
-- `libs/sim-kernel/` has a `pyproject.toml` ready to publish. Modules are not yet implemented.
-- `libs/rpc-contracts/` is an empty directory with a README. No `.proto` files yet.
-- Root `Makefile` with convenience targets.
-- Documentation under `docs/` (English) and `docs-id/` (Indonesian).
-- `docs/COMMIT_STYLE.md` and root `RELEASE.md` defining commit and release standards.
+- `libs/sim-kernel/`: nine modules implemented (`models`, `events`, `errors`, `locales`, `telemetry`, `a2a`, `mcp`, `prompts`, `grpc_contracts`), 21 tests pass, 88% line coverage
+- `services/sim-engine/`: Go gRPC server implementing all 9 RPCs from `libs/rpc-contracts/proto/simulation.proto`, in-memory state store, tick engine (counter in v0.1.0), 4 Go tests pass
+- `services/sim-gateway/`: FastAPI app with `GET /healthz`, `GET /.well-known/agent-card.json`, `POST /a2a`, JWT bearer validation, forwards questions to sim-id-fiskal, 7 tests pass
+- `services/sim-id-fiskal/`: FastAPI app with `GET /healthz` and `POST /ask`, pass-through fiscal model (Pertamax 10%, Pertalite 30%, Solar 20%), answers the first anchor question, 7 tests pass
+- `libs/rpc-contracts/proto/simulation.proto`: 10 RPCs, 11 messages, the canonical gRPC contract
+- `libs/rpc-contracts/python/`: generated Python stubs, integration test that starts the Go binary and exercises all 9 RPCs (5 tests pass)
+- Root `docker-compose.yml`: brings up sim-engine, sim-gateway, sim-id-fiskal
+- `.github/workflows/ci.yml`: Python lint+test and Go build+test on push and pull requests
+- Root `Makefile`: convenience targets for install, test, lint, build, docker, proto generation, dataset build/push
+- `libs/sim-datasets/id_fiscal_pressure/`: curated dataset, 56,709 rows, 69 indicators, 2014-11-18 to 2026-06-10, published to Hugging Face as `raihanpka/indonesia-fiscal-pressure`
+- Documentation under `docs/` (English) and `docs-id/` (Indonesian), including `ARCHITECTURE.md`, `ROADMAP.md`, `AGENTS.md`, `COMMIT_STYLE.md`
 
 What is not yet built:
 
-- Everything. The integration test from the legacy codebase is gone. The Go engine code is gone. The Python AI engine code is gone.
+- The real tick engine: v0.1.0 ticks are counters, not simulations
+- The other sim-id services: politik, iklim, agraria are still scaffolds
+- The Hugging Face dataset is published but not yet wired into the runtime services
+- Persistent state: in-memory only, PostgreSQL via pgx planned for v1.5.0
+- The gRPC healthcheck in the Docker image is not yet installed
+- The dashboard (sim-dashboard) is not yet scaffolded
 
 See [docs/ROADMAP.md](./docs/ROADMAP.md) for the full plan and timeline.
 
 ## 4. Quick Start
 
-You need Docker and Docker Compose on a machine with at least 4 GB of free RAM. You need a Go toolchain if you want to build the simulation engine from source. You need a Python 3.12 toolchain if you want to build the Python services from source.
+You need Docker and Docker Compose on a machine with at least 4 GB of free RAM. You need a Go toolchain (1.22+) if you want to build the simulation engine from source. You need a Python 3.12 toolchain and `uv` if you want to build the Python services from source.
 
 ```
 git clone https://github.com/raihanpka/project-santara
 cd project-santara
-cp .env.example .env
 make install
 make test
 ```
 
-The `make install` target installs sim-kernel and any Python service that has a `pyproject.toml`. The `make test` target runs the Python test suite and the Go test suite (when sim-engine has tests).
+The `make install` target installs sim-kernel and every Python service that has a `pyproject.toml` (sim-id-fiskal, sim-gateway). The `make test` target runs the Python test suite, the Go test suite, and the Python integration test against the Go binary.
 
-To bring up the planned Docker Compose stack (which is not yet authored):
+To bring up the Docker Compose stack:
 
 ```
 make docker-up
 ```
 
-When the services are implemented, they will be reachable as follows.
+The services are reachable as follows.
 
-- sim-gateway at http://localhost:8000 with OpenAPI docs
-- sim-id-fiskal at http://localhost:8001
-- sim-id-politik at http://localhost:8002
-- sim-id-iklim at http://localhost:8003
-- sim-id-agraria at http://localhost:8004
+- sim-gateway at http://localhost:8000 with OpenAPI docs and an A2A endpoint at `POST /a2a`
+- sim-id-fiskal at http://localhost:8001 with OpenAPI docs
 - sim-engine (Go gRPC) at localhost:50052
 
-The Docker Compose stack is not yet authored. It will be added in Phase 0 alongside the sim-engine scaffold.
+The other sim-id services (politik, iklim, agraria) are planned for Phase 2 and Phase 4. The dashboard is optional throughout.
+
+To ask the first anchor question against the running stack:
+
+```
+curl -X POST http://localhost:8000/a2a \
+  -H "Authorization: Bearer $(python -c 'import jwt,time; print(jwt.encode({\"sub\":\"test\"}, \"ponytail: dev only, replace in prod\", algorithm=\"HS256\"))')" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"ask","params":{"question":"Apa yang terjadi ke inflasi kalau Pertamax naik 30 persen lagi?"}}'
+```
 
 ## 5. Core Services
 
 | Service | Language | Tier | What it does | Status |
 |---|---|---|---|---|
-| sim-kernel | Python (library) | Shared | Pydantic models, event schemas, MCP base, A2A base, locales | Phase 0 scaffold, `pyproject.toml` published, modules not yet implemented |
-| sim-engine | Go | Performance | Tick simulation, agent state, market dynamics, worker pool, gRPC server | Phase 0 scaffold, `go.mod` published, no Go code yet |
-| sim-gateway | Python | Intelligence | A2A router, MCP server hub, JWT auth, WebSocket telemetry | Phase 1, scaffold only |
-| sim-id-fiskal | Python | Intelligence | Indonesia fiscal stress test, rupiah shock, BI rate impact, BBM impact, subsidi allocation | Phase 1, scaffold only, first anchor problem |
-| sim-id-politik | Python | Intelligence | Indonesia political dynamics, kabinet reshuffle, demo propagation, electoral scenarios | Phase 2, scaffold only |
-| sim-id-iklim | Python | Intelligence | Indonesia climate emergency, El Nino projection, karhutla cascade, banjir response | Phase 2, scaffold only |
-| sim-id-agraria | Python | Intelligence | Indonesia agrarian micro-economy, tengkulak chain, Reforma Agraria scenarios | Phase 4, scaffold only |
-| sim-dashboard | TypeScript | Optional | React 19 and Tailwind v4 web UI | Phase 3, not yet scaffold |
+| sim-kernel | Python (library) | Shared | Pydantic models, event schemas, MCP base, A2A base, locales, prompts, telemetry, errors, grpc_contracts | v0.1.0, 9 modules, 21 tests, 88% coverage |
+| sim-engine | Go 1.22+ | Performance | Tick simulation, agent state, market dynamics, gRPC server | v0.1.0, 9 RPCs implemented, 4 Go tests pass, tick is a counter |
+| sim-gateway | Python 3.12 | Intelligence | A2A router, MCP server hub, JWT auth, WebSocket telemetry | v0.1.0, FastAPI, 7 tests pass, MCP hub is a placeholder |
+| sim-id-fiskal | Python 3.12 | Intelligence | Indonesia fiscal stress test, rupiah shock, BI rate impact, BBM impact, subsidi allocation | v0.1.0, FastAPI, 7 tests pass, pass-through model, first anchor problem |
+| sim-id-politik | Python 3.12 | Intelligence | Indonesia political dynamics, kabinet reshuffle, demo propagation, electoral scenarios | Phase 2, scaffold only |
+| sim-id-iklim | Python 3.12 | Intelligence | Indonesia climate emergency, El Nino projection, karhutla cascade, banjir response | Phase 2, scaffold only |
+| sim-id-agraria | Python 3.12 | Intelligence | Indonesia agrarian micro-economy, tengkulak chain, Reforma Agraria scenarios | Phase 4, scaffold only |
+| sim-dashboard | TypeScript | Optional | React 19 and Tailwind v4 web UI | Phase 3, not yet scaffolded |
 
 The v0.1.0 release ships sim-engine (with the gRPC server implemented), sim-kernel (with all modules implemented), sim-gateway, and sim-id-fiskal. The other sim-id services follow in Phase 2 and Phase 4. The dashboard is optional throughout.
 

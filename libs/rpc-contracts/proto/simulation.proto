@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package santara.simulation.v1;
+
+option go_package = "github.com/raihanpka/sim-engine/internal/grpc_gen;grpc_gen";
+
+service SimulationService {
+  rpc CreateSimulation(CreateSimulationRequest) returns (CreateSimulationResponse);
+  rpc DestroySimulation(DestroySimulationRequest) returns (DestroySimulationResponse);
+  rpc SpawnAgent(SpawnAgentRequest) returns (SpawnAgentResponse);
+  rpc KillAgent(KillAgentRequest) returns (KillAgentResponse);
+  rpc RunTicks(RunTicksRequest) returns (RunTicksResponse);
+  rpc Pause(PauseRequest) returns (PauseResponse);
+  rpc Resume(ResumeRequest) returns (ResumeResponse);
+  rpc GetWorldState(GetWorldStateRequest) returns (WorldState);
+  rpc ApplyShock(ApplyShockRequest) returns (ApplyShockResponse);
+}
+
+message Agent {
+  string id = 1;
+  string kind = 2;
+  string locale = 3;
+  map<string, double> state = 4;
+}
+
+message FiscalShock {
+  double pertamax_price_change_pct = 1;
+  double pertalite_price_change_pct = 2;
+  double solar_price_change_pct = 3;
+  double bi_rate_change_bps = 4;
+  double subsidi_change_pct = 5;
+  double exchange_rate_shock_pct = 6;
+}
+
+message PoliticalShock {
+  double cabinet_change_probability = 1;
+  double demo_intensity = 2;
+}
+
+message ClimateShock {
+  double el_nino_intensity = 1;
+  double rainfall_change_pct = 2;
+}
+
+message AgrarianShock {
+  double tengkulak_share_change_pct = 1;
+}
+
+message Shock {
+  string simulation_id = 1;
+  oneof kind {
+    FiscalShock fiscal = 2;
+    PoliticalShock political = 3;
+    ClimateShock climate = 4;
+    AgrarianShock agrarian = 5;
+  }
+}
+
+message WorldState {
+  string simulation_id = 1;
+  uint64 tick = 2;
+  repeated Agent agents = 3;
+  map<string, double> macro_indicators = 4;
+}
+
+message CreateSimulationRequest {
+  string scenario_id = 1;
+  string locale = 2;
+  int64 seed = 3;
+  map<string, double> initial_state = 4;
+}
+
+message CreateSimulationResponse {
+  string simulation_id = 1;
+  WorldState initial_state = 2;
+}
+
+message DestroySimulationRequest {
+  string simulation_id = 1;
+}
+
+message DestroySimulationResponse {}
+
+message SpawnAgentRequest {
+  string simulation_id = 1;
+  string kind = 2;
+  string locale = 3;
+  map<string, double> initial_state = 4;
+}
+
+message SpawnAgentResponse {
+  string agent_id = 1;
+}
+
+message KillAgentRequest {
+  string simulation_id = 1;
+  string agent_id = 2;
+}
+
+message KillAgentResponse {}
+
+message RunTicksRequest {
+  string simulation_id = 1;
+  uint32 count = 2;
+}
+
+message RunTicksResponse {
+  WorldState final_state = 1;
+}
+
+message PauseRequest {
+  string simulation_id = 1;
+}
+
+message PauseResponse {}
+
+message ResumeRequest {
+  string simulation_id = 1;
+}
+
+message ResumeResponse {}
+
+message GetWorldStateRequest {
+  string simulation_id = 1;
+}
+
+message ApplyShockRequest {
+  Shock shock = 1;
+}
+
+message ApplyShockResponse {
+  WorldState after_shock = 1;
+}

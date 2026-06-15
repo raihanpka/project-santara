@@ -15,11 +15,17 @@ help:
 	@echo "  make install           Install all Python services and sim-kernel"
 	@echo "  make test              Run all tests (Python + Go)"
 	@echo "  make test-py           Run Python tests (pytest across all services)"
-	@echo "  make test-go           Run Go tests (services/sim-engine)"
-	@echo "  make test-kernel       Run sim-kernel tests only"
+	@echo "  make test-go           Go tests (services/sim-engine)"
+	@echo "  make test-kernel       sim-kernel tests only"
 	@echo "  make lint              Lint everything"
 	@echo "  make format            Format everything"
 	@echo "  make build-go          Build the Go service binary"
+	@echo "  make engine-test       Run sim-engine Go tests only"
+	@echo "  make proto-py          Generate Python gRPC stubs from proto/simulation.proto"
+	@echo "  make proto-go          Generate Go gRPC stubs from proto/simulation.proto"
+	@echo "  make dataset-build     Build the Indonesia Fiscal Pressure Tracker dataset into dist/"
+	@echo "  make dataset-card      Regenerate only the dataset card README.md (run once, then edit on the Hub)"
+	@echo "  make dataset-push      Build the dataset and publish to raihanpka/indonesia-fiscal-pressure on the Hub"
 	@echo "  make docker-up         Bring up docker compose stack"
 	@echo "  make docker-down       Tear down docker compose stack"
 	@echo "  make clean             Remove build artifacts and caches"
@@ -94,11 +100,92 @@ format:
 .PHONY: build-go
 build-go:
 	@if [ -f services/sim-engine/go.mod ]; then \
-		cd services/sim-engine && go build -o bin/sim-engine ./cmd/server && cd ../..; \
-		echo "Built services/sim-engine/bin/sim-engine"; \
+		cd services/sim-engine && go build -o bin/sim-engine-server ./cmd/server && cd ../..; \
+		echo "Built services/sim-engine/bin/sim-engine-server"; \
 	else \
 		echo "services/sim-engine not yet scaffolded"; \
 	fi
+
+.PHONY: engine-test
+engine-test:
+	cd services/sim-engine && go test -count=1 ./...
+
+.PHONY: proto-py
+proto-py:
+	@if ! command -v protoc >/dev/null 2>&1; then \
+		echo "protoc not found. Install: brew install protobuf (macOS) or apt install protobuf-compiler (Linux)"; \
+		exit 1; \
+	fi
+	@if [ ! -d libs/sim-kernel/.venv ]; then \
+		cd libs/sim-kernel && uv venv --python 3.12 && uv pip install grpcio grpcio-tools; \
+	fi
+	cd libs/sim-kernel && .venv/bin/python -m grpc_tools.protoc \
+		--python_out=../rpc-contracts/python/sim_rpc \
+		--grpc_python_out=../rpc-contracts/python/sim_rpc \
+		--proto_path=../rpc-contracts/proto \
+		../rpc-contracts/proto/simulation.proto
+	@echo "Patching simulation_pb2_grpc.py import for package context..."
+	@cd libs/rpc-contracts/python/sim_rpc && \
+		sed -i.bak 's/^import simulation_pb2 as simulation__pb2$$/from . import simulation_pb2 as simulation__pb2/' simulation_pb2_grpc.py && \
+		rm -f simulation_pb2_grpc.py.bak
+	@echo "Generated Python stubs in libs/rpc-contracts/python/sim_rpc/"
+
+.PHONY: proto-go
+proto-go:
+	@if ! command -v protoc >/dev/null 2>&1; then \
+		echo "protoc not found. Install: brew install protobuf (macOS) or apt install protobuf-compiler (Linux)"; \
+		exit 1; \
+	fi
+	@if ! command -v protoc-gen-go >/dev/null 2>&1; then \
+		echo "Installing protoc-gen-go..."; \
+		go install google.golang.org/protobuf/cmd/protoc-gen-go@latest; \
+	fi
+	@if ! command -v protoc-gen-go-grpc >/dev/null 2>&1; then \
+		echo "Installing protoc-gen-go-grpc..."; \
+		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest; \
+	fi
+	cd services/sim-engine && protoc \
+		--proto_path=../../libs/rpc-contracts/proto \
+		--go_out=internal/grpc_gen \
+		--go_opt=paths=source_relative \
+		--go-grpc_out=internal/grpc_gen \
+		--go-grpc_opt=paths=source_relative \
+		../../libs/rpc-contracts/proto/simulation.proto
+	mv services/sim-engine/simulation.pb.go services/sim-engine/internal/grpc_gen/
+	mv services/sim-engine/simulation_grpc.pb.go services/sim-engine/internal/grpc_gen/
+	@echo "Generated Go stubs in services/sim-engine/internal/grpc_gen/"
+
+.PHONY: dataset-build
+dataset-build:
+	@if [ ! -f libs/sim-datasets/id_fiscal_pressure/build.py ]; then \
+		echo "build.py not found at libs/sim-datasets/id_fiscal_pressure/build.py"; \
+		exit 1; \
+	fi
+	python3 libs/sim-datasets/id_fiscal_pressure/build.py
+
+.PHONY: dataset-card
+dataset-card:
+	python3 libs/sim-datasets/id_fiscal_pressure/build.py --card-only
+
+.PHONY: dataset-push
+dataset-push:
+	@if [ ! -f .env ]; then \
+		echo ".env not found at repo root. Add HF_TOKEN=... to .env first."; \
+		exit 1; \
+	fi
+	@if [ ! -d libs/sim-datasets/id_fiscal_pressure/dist ]; then \
+		echo "dist/ does not exist. Run make dataset-build first."; \
+		exit 1; \
+	fi
+	python3 -c "import os; from dotenv import load_dotenv; load_dotenv('.env'); \
+		from huggingface_hub import HfApi; \
+		api = HfApi(token=os.environ['HF_TOKEN']); \
+		api.upload_folder( \
+			folder_path='libs/sim-datasets/id_fiscal_pressure/dist', \
+			repo_id='raihanpka/indonesia-fiscal-pressure', \
+			repo_type='dataset', \
+			commit_message='Sync from project-santara repo')"
+	@echo "Published to raihanpka/indonesia-fiscal-pressure on the Hub"
 
 .PHONY: docker-up
 docker-up:

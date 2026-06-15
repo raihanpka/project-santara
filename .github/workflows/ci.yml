@@ -1,0 +1,78 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python:
+    name: Python lint + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv
+      - name: Set up sim-kernel
+        run: |
+          cd libs/sim-kernel
+          uv venv --python 3.12
+          uv pip install -e ".[dev]"
+      - name: Set up sim-id-fiskal
+        run: |
+          cd services/sim-id-fiskal
+          uv venv --python 3.12
+          uv pip install -e ".[dev]"
+      - name: Set up sim-gateway
+        run: |
+          cd services/sim-gateway
+          uv venv --python 3.12
+          uv pip install -e ".[dev]"
+      - name: Set up rpc-contracts (Python stubs)
+        run: |
+          cd libs/rpc-contracts
+          uv venv --python 3.12
+          uv pip install grpcio grpcio-tools pytest
+      - name: Run sim-kernel tests
+        run: |
+          cd libs/sim-kernel
+          .venv/bin/pytest --tb=short -q
+      - name: Run sim-id-fiskal tests
+        run: |
+          cd services/sim-id-fiskal
+          .venv/bin/pytest --tb=short -q
+      - name: Run sim-gateway tests
+        run: |
+          cd services/sim-gateway
+          .venv/bin/pytest --tb=short -q
+      - name: Run sim-engine integration test
+        run: |
+          cd services/sim-engine
+          go build -o bin/sim-engine-server ./cmd/server
+          cd ../..
+          libs/rpc-contracts/.venv/bin/pytest libs/rpc-contracts/python/tests/ -v
+
+  go:
+    name: Go build + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Build sim-engine
+        run: |
+          cd services/sim-engine
+          go build -o bin/sim-engine-server ./cmd/server
+      - name: Test sim-engine
+        run: |
+          cd services/sim-engine
+          go test -count=1 -race ./...
+      - name: Lint sim-engine
+        run: |
+          cd services/sim-engine
+          go vet ./...

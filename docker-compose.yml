@@ -1,0 +1,45 @@
+services:
+  sim-engine:
+    build:
+      context: ./services/sim-engine
+      dockerfile: Dockerfile
+    container_name: santara-sim-engine
+    ports:
+      - "50052:50052"
+    environment:
+      SIM_ENGINE_GRPC_ADDR: ":50052"
+      SIM_ENGINE_LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:50052"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  sim-id-fiskal:
+    build:
+      context: ./services/sim-id-fiskal
+      dockerfile: Dockerfile
+    container_name: santara-sim-id-fiskal
+    ports:
+      - "8001:8001"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    restart: unless-stopped
+
+  sim-gateway:
+    build:
+      context: ./services/sim-gateway
+      dockerfile: Dockerfile
+    container_name: santara-sim-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      SIM_ID_FISKAL_URL: "http://sim-id-fiskal:8001"
+      GATEWAY_PUBLIC_URL: "http://localhost:8000"
+      GATEWAY_JWT_SECRET: "ponytail: change me in production"
+    depends_on:
+      - sim-id-fiskal
+    restart: unless-stopped

@@ -443,8 +443,7 @@ This dataset is part of Project Santara: An Open-Source Counterfactual Microserv
 
 ### Dataset Curators
 
-- Raihan Putra Kirana (project lead, Project Santara, `raihanputragpr@gmail.com`)
-- The Project Santara open-source contributors
+- Raihan Putra Kirana (Project Lead, Project Santara)
 - AI assistants (used as curators for the fuel-price source, compiling news articles into one canonical CSV; AI was not used to impute any values)
 
 ### Licensing Information
@@ -456,11 +455,11 @@ This dataset is licensed under Apache 2.0. Source data is public domain (per UU 
 If you use this dataset in academic work, please cite both Project Santara and the original sources.
 
 ```bibtex
-@dataset{{id-fiscal-pressure-2026,
-  author = {{Raihan Putra Kirana and the Project Santara contributors}},
+@dataset{{indonesia-fiscal-pressure-2026,
+  author = {{Raihan Putra Kirana}},
   title  = {{Indonesia Fiscal Pressure Tracker}},
   year   = {{2026}},
-  url    = {{https://huggingface.co/datasets/raihanpka/id-fiscal-pressure}},
+  url    = {{https://huggingface.co/datasets/raihanpka/indonesia-fiscal-pressure}},
   note   = {{Part of Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems}}
 }}
 ```
@@ -519,7 +518,7 @@ Open an issue or pull request at `github.com/raihanpka/project-santara`. Propose
 ```python
 from datasets import load_dataset
 
-ds = load_dataset("raihanpka/id-fiscal-pressure", split="train")
+ds = load_dataset("raihanpka/indonesia-fiscal-pressure", split="train")
 print(ds[0])
 print(f"Total rows: {{len(ds)}}")
 ```
@@ -529,7 +528,7 @@ Or load the long-format CSV directly:
 ```python
 import pandas as pd
 df = pd.read_csv(
-    "https://huggingface.co/datasets/raihanpka/id-fiscal-pressure/resolve/main/data/santara_fiscal_pressure_long.csv"
+    "https://huggingface.co/datasets/raihanpka/indonesia-fiscal-pressure/resolve/main/data/santara_fiscal_pressure_long.csv"
 )
 ```
 
@@ -546,14 +545,42 @@ python3 libs/sim-datasets/id_fiscal_pressure/build.py
 
 
 def main() -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--card",
+        action="store_true",
+        help="Regenerate the dataset card README.md even if it already exists.",
+    )
+    ap.add_argument(
+        "--card-only",
+        action="store_true",
+        help="Regenerate the dataset card only, do not rebuild data files.",
+    )
+    args = ap.parse_args()
+
     DIST.mkdir(parents=True, exist_ok=True)
+
+    if args.card_only:
+        df = load_all()
+        write_dataset_card(df, DIST)
+        return 0
+
     df = load_all()
     print(f"\nTotal rows after combine: {len(df)}")
     write_parquet(df, DIST)
     write_csv(df, DIST)
     copy_raw_csvs(DIST)
     write_provenance(df, DIST)
-    write_dataset_card(df, DIST)
+
+    readme = DIST / "README.md"
+    if readme.exists() and not args.card:
+        print(f"Preserving existing card at {readme}")
+        print("Edit it via the Hugging Face web UI. Pass --card to regenerate from template.")
+    else:
+        write_dataset_card(df, DIST)
+
     print("\nSummary:")
     print(f"  Total rows: {len(df)}")
     print(f"  Date range: {df['date'].min()} to {df['date'].max()}")
@@ -563,7 +590,10 @@ def main() -> int:
         print(f"    {sid}: {n}")
     print("\nBuild complete. Files in dist/:")
     print(f"  train-00000-of-00001.parquet")
-    print(f"  README.md (dataset card)")
+    if readme.exists():
+        print(f"  README.md (preserved, edited via HF web)")
+    else:
+        print(f"  README.md (dataset card, auto-generated)")
     print(f"  provenance.csv")
     print(f"  sources.csv")
     print(f"  data/santara_fiscal_pressure_long.csv")

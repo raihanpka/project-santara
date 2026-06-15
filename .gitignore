@@ -255,3 +255,27 @@ node_modules
 *.log
 
 # End of https://www.toptal.com/developers/gitignore/api/nuxtjs
+
+# --- Go ---
+# Compiled binaries
+*.exe
+*.exe~
+*.dll
+*.dylib
+*.so
+*.test
+*.out
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Per-service Go build artifacts
+services/*/bin/
+
+# Generated protobuf stubs (regenerate via `make proto-py` / `make proto-go`)
+# Keep the .proto files in version control, ignore generated outputs.
+libs/rpc-contracts/python/sim_rpc/simulation_pb2.py
+libs/rpc-contracts/python/sim_rpc/simulation_pb2_grpc.py
+services/sim-engine/internal/grpc_gen/simulation.pb.go
+services/sim-engine/internal/grpc_gen/simulation_grpc.pb.go

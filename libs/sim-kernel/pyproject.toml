@@ -21,8 +21,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
-    "Topic :: Sociology",
-    "Topic :: Economics",
 ]
 dependencies = [
     "pydantic>=2.6",
