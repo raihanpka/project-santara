@@ -146,6 +146,28 @@ Implications:
 - Citations for non-obvious claims. Link to the source.
 - Tables for structured comparisons. Use Markdown tables, not bullet lists of `key: value`.
 
+## 7b. Output and Log Style
+
+This applies to any printed output, log message, or status indicator produced by code (Python, Go, shell scripts, anything in `services/`, `libs/`, or root-level scripts).
+
+- **No equals sign (`=`) in print statements, log messages, or status output.** Use a colon, a space, an arrow, or a verb phrase instead. Examples below.
+- **No em dash or en dash** in any output. Same rule as Markdown.
+- **Sentence case, like normal prose.** Not all caps. Not all lowercase. Not `SCREAMING_SNAKE`. Use Title Case for proper nouns and product names.
+- **Use parentheses `(...)` or an ellipsis `...` for in-progress indicators.** A few examples that satisfy all four rules above:
+  - `Loading file (this takes a few seconds) ...` is good.
+  - `Building module ...` is good.
+  - `Processing batch 3 of 12 (1,250 rows) ...` is good.
+  - `Wrote dist/train-00000-of-00001.parquet (56,701 rows)` is good.
+  - `Wrote sources.csv (5 entries)` is good.
+  - The following are wrong: `LOADING DATA...`, `loading data...`, `Loading data...done`, `loading data... [OK]`, `data=loaded`, `Loading data: 50%`, `Loading data: 12345`, `Loading data ===>`, `Loading data - success`.
+- **Errors go to stderr, with a clear cause and the next step.** A few examples that satisfy the rules:
+  - `Failed to open raw/santara_bi_7day_rr.xlsx. Run the BI rate download step first.` is good.
+  - The following are wrong: `ERROR!`, `error!`, `*** error: file not found`, `[FATAL] cannot open file`, `ERR_FILE_NOT_FOUND`.
+- **Numbers and units get a space between them.** `56,701 rows`, `5.50 percent`, `12,300 IDR/liter`. Do not write `56,701rows` or `5.50%`. (In code, the equals-free style still applies: `print(f"Wrote {n} rows")` is fine, but `print(f"rows={n}")` is not.)
+- **Loading indicators and final status lines match the same style.** A `Loading X ...` line should be followed by a `Wrote Y` or `Failed: reason` line in the same sentence-case and symbol style. No mixing.
+
+The forbidden glyphs in output and logs, summarized: `=`, em dash, en dash, `!` (as a stand-alone emphasis), `*` (as decoration), `>` arrows used as separators, `#` banners, emoji. The accepted separators: `:` `...` `(` `)` `-` (hyphen with spaces).
+
 ## 8. Commit and PR Style
 
 See [COMMIT_STYLE.md](./COMMIT_STYLE.md) for the full convention. The short version:
@@ -173,7 +195,8 @@ Pull requests: open as draft early, run the full test suite, address review comm
 These are explicit anti-patterns. A pull request that does any of these will be rejected.
 
 - **No emoji in code, comments, documentation, or commit messages.** Not even one.
-- **No em dash or en dash.** Use a single hyphen with spaces, or rewrite the sentence.
+- **No em dash or en dash anywhere** (code, comments, docs, logs, output, commit messages). Use a single hyphen with spaces, or rewrite the sentence.
+- **No equals sign (`=`) in log messages, console output, or status strings.** Use a colon, parentheses, or an ellipsis instead. This applies to all code that prints, logs, or otherwise emits text. Inside Python or Go source code, the equals sign is fine where it is part of the language (assignment, comparison, keyword arguments). The rule is about the user-visible string output, not the syntax.
 - **No ASCII art diagrams.** Use Mermaid.
 - **No JavaScript framework for the platform itself.** The optional sim-dashboard is the only TypeScript surface. Do not add Next.js, React (outside sim-dashboard), Vue, Svelte, or any other JS framework to the platform.
 - **No monorepo build tool in v1.0.** No Nx, no Turbo, no Bazel, no Lerna. The Makefile is convenience only.
@@ -214,6 +237,19 @@ The Makefile is intentionally simple. Do not turn it into a build orchestrator. 
 - Issue and PR templates: bilingual. English first, Indonesian second.
 
 When you write or update a doc, you update both copies. If the Indonesian copy cannot keep up, the English version is the source of truth and the Indonesian copy is marked "needs translation."
+
+## 13. Citation
+
+If you reference Project Santara in academic or technical work, cite the platform as follows.
+
+```bibtex
+@misc{project-santara-2026,
+  author = {Raihan Putra Kirana},
+  title  = {Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems},
+  year   = {2026},
+  url    = {https://github.com/raihanpka/project-santara}
+}
+```
 
 ## 12. When You Are Unsure
 

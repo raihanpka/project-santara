@@ -1,6 +1,6 @@
-# Project Santara: Roadmap
+# Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems
 
-This document is the source of truth for what is done, what is in progress, what is planned, and what is explicitly aspirational. It is honest about state. Targets below are not commitments. They are the team's working estimate as of the most recent update.
+This document is the source of truth for what is done, what is in progress, what is planned, and what is explicitly aspirational. Project Santara is an open-source counterfactual microservices platform for simulating Indonesia's economic, political, and climate systems. Targets below are not commitments. They are the team's working estimate as of the most recent update.
 
 The English version of this file is canonical. The Bahasa Indonesia version lives in [docs-id/ROADMAP.md](./docs-id/ROADMAP.md). If the two diverge, the English version wins.
 
@@ -258,3 +258,16 @@ These items are explicitly not in v1.0. The list is not a TODO. It is a refusal 
 - **A "we made up the numbers to make the demo look good" mode.** The dataset provenance is the answer to that critique. The platform does not ship a fake-data mode.
 
 If a feature is not on this list and not in the phase plan, it is undecided. Open an issue with the `proposal` label.
+
+## 13. Citation
+
+If you reference Project Santara in academic or technical work, cite the platform as follows.
+
+```bibtex
+@misc{project-santara-2026,
+  author = {Raihan Putra Kirana},
+  title  = {Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems},
+  year   = {2026},
+  url    = {https://github.com/raihanpka/project-santara}
+}
+```

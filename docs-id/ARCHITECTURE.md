@@ -1,4 +1,6 @@
-# Project Santara: Architecture
+# Project Santara: Platform Microservice Counterfactual Sumber Terbuka untuk Simulasi Sistem Ekonomi, Politik, dan Iklim Indonesia
+
+Dokumen ini adalah sumber kanonik tentang bagaimana Project Santara dibangun. Project Santara adalah platform microservice counterfactual sumber terbuka untuk simulasi sistem ekonomi, politik, dan iklim Indonesia. Codebase sedang dibangun ulang dari nol. Struktur baru di bawah `services/` dan `libs/` adalah scaffold saja.
 
 Dokumen ini adalah sumber kanonik tentang bagaimana Project Santara dibangun. Dokumen ini jujur tentang apa yang dibangun hari ini, apa yang sedang dibangun, dan apa yang aspirasional. Project sedang dalam pengembangan aktif. Codebase sedang dibangun ulang dari nol. Struktur baru di bawah `services/` dan `libs/` adalah scaffold saja.
 
@@ -414,3 +416,16 @@ Dataset dideploy di bawah organisasi `raihanpka` (atau ekuivalen) Hugging Face. 
 Kritik umum terhadap platform simulasi adalah "kami mengarang angka untuk membuat demo terlihat bagus." Publikasi dataset adalah jawaban untuk kritik itu. Siapapun dengan dataset bisa menjalankan simulasi mereka sendiri, memverifikasi angka platform, dan mempublikasikan kritik atau perbaikan mereka sendiri.
 
 Ini juga bagaimana platform mendapatkan kepercayaan seiring waktu. Kepercayaan bukan klaim pemasaran. Kepercayaan adalah catatan diperiksa dan tidak salah.
+
+## 18. Sitasi
+
+Jika Anda merujuk Project Santara dalam karya akademis atau teknis, sitasi platform sebagai berikut.
+
+```bibtex
+@misc{project-santara-2026,
+  author = {Raihan Putra Kirana},
+  title  = {Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems},
+  year   = {2026},
+  url    = {https://github.com/raihanpka/project-santara}
+}
+```

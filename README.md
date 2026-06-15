@@ -1,6 +1,6 @@
-# Project Santara
+# Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems
 
-Open-source simulation platform for Indonesia's economic, political, climatic, and agrarian systems. Built as a hybrid microservices ecosystem: Python services for LLM reasoning and protocol exposure, a Go service for the simulation tick engine, and a shared Python library called `sim-kernel`. The project is under active development. The codebase is being rebuilt from scratch. The new structure under `services/` and `libs/` is scaffold only.
+An open-source counterfactual microservices platform that answers "what if" questions about Indonesia's economic, political, and climate systems. Python services handle language-model reasoning and protocol exposure. A Go service runs the simulation tick engine. A shared Python library called `sim-kernel` provides the domain models, event schemas, and protocol helpers. The project is under active development. The codebase is being rebuilt from scratch. The new structure under `services/` and `libs/` is scaffold only.
 
 For the Indonesian version, see [PANDUAN.md](./docs-id/PANDUAN.md).
 
@@ -159,7 +159,6 @@ The architecture is documented in detail in [docs/ARCHITECTURE.md](./docs/ARCHIT
 | Python library | PyPI | pip install sim-kernel |
 | Docker images | GitHub Container Registry | Native to GitHub, multi-arch, free |
 | License | Apache 2.0 (new code) | Explicit patent grant, commercial friendly |
-| Legacy license | GNU GPL 3.0 (LICENSE file) | Preserved as committed, see CHANGELOG |
 
 ## 9. Repository Layout
 
@@ -218,10 +217,10 @@ Project Santara is licensed under the Apache License 2.0. The full license text 
 
 If you use Project Santara in academic work, please cite the platform as follows.
 
-```
+```bibtex
 @misc{project-santara-2026,
   author = {Raihan Putra Kirana},
-  title  = {Project Santara: An open-source hybrid microservices simulation platform for Indonesia and the Global South},
+  title  = {Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems},
   year   = {2026},
   url    = {https://github.com/raihanpka/project-santara}
 }

@@ -1,0 +1,9 @@
+date,indicator,region,value,unit,source_id
+2026-06-04,BERAS,NASIONAL,16000,IDR_per_kg,pihps.api.beras
+2026-06-04,DAGING_AYAM,NASIONAL,38250,IDR_per_kg,pihps.api.daging_ayam
+2026-06-04,DAGING_SAPI,NASIONAL,145000,IDR_per_kg,pihps.api.daging_sapi
+2026-06-04,TELUR_AYAM,NASIONAL,30450,IDR_per_kg,pihps.api.telur_ayam
+2026-06-04,BAWANG_MERAH,NASIONAL,53500,IDR_per_kg,pihps.api.bawang_merah
+2026-06-04,CABAI_MERAH,NASIONAL,62000,IDR_per_kg,pihps.api.cabai_merah
+2026-06-04,CABAI_RAWIT,NASIONAL,65300,IDR_per_kg,pihps.api.cabai_rawit
+2026-06-04,GULA_PASIR,NASIONAL,19550,IDR_per_kg,pihps.api.gula_pasir

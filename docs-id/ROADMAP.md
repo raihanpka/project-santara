@@ -1,4 +1,6 @@
-# Project Santara: Peta Jalan
+# Project Santara: Platform Microservice Counterfactual Sumber Terbuka untuk Simulasi Sistem Ekonomi, Politik, dan Iklim Indonesia
+
+Dokumen ini adalah sumber kebenaran untuk apa yang sudah selesai, apa yang sedang berjalan, apa yang direncanakan, dan apa yang secara eksplisit aspirasional. Project Santara adalah platform microservice counterfactual sumber terbuka untuk simulasi sistem ekonomi, politik, dan iklim Indonesia. Target di bawah ini bukan komitmen. Itu adalah estimasi kerja tim sejak pembaruan terakhir.
 
 Dokumen ini adalah sumber kebenaran untuk apa yang sudah selesai, apa yang sedang berjalan, apa yang direncanakan, dan apa yang secara eksplisit aspirasional. Dokumen ini jujur tentang status. Target di bawah ini bukan komitmen. Itu adalah estimasi kerja tim sejak pembaruan terakhir.
 
@@ -258,3 +260,16 @@ Item-item ini secara eksplisit tidak ada di v1.0. Daftar ini bukan TODO. Ini ada
 - **Mode "kita mengarang angka untuk membuat demo terlihat bagus."** Provenance dataset adalah jawaban untuk kritik itu. Platform tidak mengirimkan mode data palsu.
 
 Jika fitur tidak ada di daftar ini dan tidak ada di rencana fase, itu belum diputuskan. Buka issue dengan label `proposal`.
+
+## 13. Sitasi
+
+Jika Anda merujuk Project Santara dalam karya akademis atau teknis, sitasi platform sebagai berikut.
+
+```bibtex
+@misc{project-santara-2026,
+  author = {Raihan Putra Kirana},
+  title  = {Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems},
+  year   = {2026},
+  url    = {https://github.com/raihanpka/project-santara}
+}
+```

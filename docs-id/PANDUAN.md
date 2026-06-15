@@ -1,8 +1,21 @@
-# Panduan Project Santara
+# Project Santara: Platform Microservice Counterfactual Sumber Terbuka untuk Simulasi Sistem Ekonomi, Politik, dan Iklim Indonesia
 
-Platform simulasi sumber terbuka untuk sistem ekonomi, politik, iklim, dan agraria Indonesia. Dibangun sebagai ekosistem microservice hybrid: layanan Python untuk penalaran LLM dan paparan protokol, layanan Go untuk tick engine simulasi, dan library Python bersama bernama `sim-kernel`. Project sedang dalam pengembangan aktif. Codebase sedang dibangun ulang dari nol. Struktur baru di bawah `services/` dan `libs/` adalah scaffold saja.
+Platform microservice counterfactual sumber terbuka yang menjawab pertanyaan "bagaimana jika" tentang sistem ekonomi, politik, dan iklim Indonesia. Layanan Python menangani penalaran model bahasa dan paparan protokol. Layanan Go menjalankan tick engine simulasi. Library Python bersama bernama `sim-kernel` menyediakan model domain, skema event, dan pembantu protokol. Project sedang dalam pengembangan aktif. Codebase sedang dibangun ulang dari nol. Struktur baru di bawah `services/` dan `libs/` adalah scaffold saja.
 
 Untuk versi Bahasa Inggris, lihat [README.md](../README.md).
+
+## 14. Sitasi
+
+Jika Anda merujuk Project Santara dalam karya akademis atau teknis, sitasi platform sebagai berikut.
+
+```bibtex
+@misc{project-santara-2026,
+  author = {Raihan Putra Kirana},
+  title  = {Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems},
+  year   = {2026},
+  url    = {https://github.com/raihanpka/project-santara}
+}
+```
 
 ## Daftar Isi
 

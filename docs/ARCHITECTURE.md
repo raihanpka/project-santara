@@ -1,4 +1,6 @@
-# Project Santara: Architecture
+# Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems
+
+This document is the canonical source of truth for how Project Santara is built. It is honest about what is built today, what is being built, and what is aspirational. The project is under active development. The codebase is being rebuilt from scratch. The new structure under `services/` and `libs/` is scaffold only.
 
 This document is the canonical source of truth for how Project Santara is built. It is honest about what is built today, what is being built, and what is aspirational. The project is under active development. The codebase is being rebuilt from scratch. The new structure under `services/` and `libs/` is scaffold only.
 
@@ -414,3 +416,16 @@ The datasets are deployed under the `raihanpka` (or equivalent) Hugging Face org
 A common critique of simulation platforms is "we made up the numbers to make the demo look good." The dataset publication is the answer to that critique. Anyone with the dataset can run their own simulation, verify the platform's numbers, and publish their own critique or improvement.
 
 This is also how the platform earns trust over time. Trust is not a marketing claim. Trust is a record of being checked and not being wrong.
+
+## 18. Citation
+
+If you reference Project Santara in academic or technical work, cite the platform as follows.
+
+```bibtex
+@misc{project-santara-2026,
+  author = {Raihan Putra Kirana},
+  title  = {Project Santara: An Open-Source Counterfactual Microservices Platform for Simulating Indonesia's Economic, Political, and Climate Systems},
+  year   = {2026},
+  url    = {https://github.com/raihanpka/project-santara}
+}
+```
