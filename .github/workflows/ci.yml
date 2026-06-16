@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# Opt into Node.js 24 for all actions. Node.js 20 is deprecated on GitHub
+# Actions runners and will be removed on September 16, 2026.
+# See: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -232,6 +238,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        if: ${{ env.DOCKERHUB_USERNAME != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push sim-engine
         uses: docker/build-push-action@v6
         with:
@@ -242,6 +255,8 @@ jobs:
           tags: |
             ghcr.io/raihanpka/sim-engine:${{ steps.version.outputs.version }}
             ghcr.io/raihanpka/sim-engine:latest
+            docker.io/raihanpka/sim-engine:${{ steps.version.outputs.version }}
+            docker.io/raihanpka/sim-engine:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -255,6 +270,8 @@ jobs:
           tags: |
             ghcr.io/raihanpka/sim-gateway:${{ steps.version.outputs.version }}
             ghcr.io/raihanpka/sim-gateway:latest
+            docker.io/raihanpka/sim-gateway:${{ steps.version.outputs.version }}
+            docker.io/raihanpka/sim-gateway:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -268,5 +285,7 @@ jobs:
           tags: |
             ghcr.io/raihanpka/sim-id-fiskal:${{ steps.version.outputs.version }}
             ghcr.io/raihanpka/sim-id-fiskal:latest
+            docker.io/raihanpka/sim-id-fiskal:${{ steps.version.outputs.version }}
+            docker.io/raihanpka/sim-id-fiskal:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
