@@ -19,15 +19,16 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-
 from sim_kernel.a2a import (
-    AgentSkill,
     CARD_PATH,
+    AgentSkill,
     make_agent_card,
 )
 
 FISKAL_URL = os.environ.get("SIM_ID_FISKAL_URL", "http://sim-id-fiskal:8001")
-GATEWAY_JWT_SECRET = os.environ.get("GATEWAY_JWT_SECRET", "ponytail: dev only, replace in prod")  # ponytail:
+GATEWAY_JWT_SECRET = os.environ.get(
+    "GATEWAY_JWT_SECRET", "ponytail: dev only, replace in prod"
+)  # ponytail:
 
 app = FastAPI(
     title="Santara sim-gateway",
@@ -106,7 +107,9 @@ async def a2a(req: JsonRpcRequest, request: Request) -> JSONResponse:
             status_code=200,
             content=JsonRpcResponse(
                 id=req.id,
-                error=JsonRpcError(code=-32601, message=f"Method not found: {req.method}").model_dump(),
+                error=JsonRpcError(
+                    code=-32601, message=f"Method not found: {req.method}"
+                ).model_dump(),
             ).model_dump(),
         )
 
@@ -119,7 +122,9 @@ async def a2a(req: JsonRpcRequest, request: Request) -> JSONResponse:
             status_code=200,
             content=JsonRpcResponse(
                 id=req.id,
-                error=JsonRpcError(code=-32602, message="Missing 'question' in params").model_dump(),
+                error=JsonRpcError(
+                    code=-32602, message="Missing 'question' in params"
+                ).model_dump(),
             ).model_dump(),
         )
 

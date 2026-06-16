@@ -6,7 +6,6 @@ import time
 
 import httpx
 import jwt
-import pytest
 import respx
 from fastapi.testclient import TestClient
 
@@ -99,7 +98,9 @@ def test_a2a_forwards_to_fiskal() -> None:
                 "jsonrpc": "2.0",
                 "id": "1",
                 "method": "ask",
-                "params": {"question": "Apa yang terjadi ke inflasi kalau Pertamax naik 30 persen lagi?"},
+                "params": {
+                    "question": "Apa yang terjadi ke inflasi kalau Pertamax naik 30 persen lagi?"
+                },
             },
             headers={"Authorization": f"Bearer {token}"},
         )

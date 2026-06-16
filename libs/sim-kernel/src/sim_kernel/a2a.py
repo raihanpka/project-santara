@@ -50,9 +50,7 @@ def make_agent_card(
     url: str,
     skills: list[AgentSkill],
 ) -> AgentCard:
-    return AgentCard(
-        id=agent_id, name=name, description=description, url=url, skills=skills
-    )
+    return AgentCard(id=agent_id, name=name, description=description, url=url, skills=skills)
 
 
 Handler = Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]]

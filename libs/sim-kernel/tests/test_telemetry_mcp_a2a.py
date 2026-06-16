@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import json
 
 import pytest
 
 from sim_kernel.a2a import (
-    AgentSkill,
     JSONRPC_PATH,
+    AgentSkill,
     make_agent_card,
 )
 from sim_kernel.mcp import MCPServerBase

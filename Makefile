@@ -9,7 +9,7 @@
 
 .PHONY: help
 help:
-	@echo "Project Santara - convenience targets"
+	@echo "Project Santara Commands"
 	@echo ""
 	@echo "  make help              Show this help"
 	@echo "  make install           Install all Python services and sim-kernel"
@@ -145,15 +145,18 @@ proto-go:
 		echo "Installing protoc-gen-go-grpc..."; \
 		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest; \
 	fi
+	@mkdir -p services/sim-engine/internal/grpc_gen
 	cd services/sim-engine && PATH="$$(go env GOPATH)/bin:$$PATH" protoc \
 		--proto_path=../../libs/rpc-contracts/proto \
-		--go_out=internal/grpc_gen \
+		--go_out=. \
 		--go_opt=paths=source_relative \
-		--go-grpc_out=internal/grpc_gen \
+		--go-grpc_out=. \
 		--go-grpc_opt=paths=source_relative \
 		../../libs/rpc-contracts/proto/simulation.proto
-	mv services/sim-engine/simulation.pb.go services/sim-engine/internal/grpc_gen/
-	mv services/sim-engine/simulation_grpc.pb.go services/sim-engine/internal/grpc_gen/
+	@if [ -f services/sim-engine/simulation.pb.go ] && [ ! -f services/sim-engine/internal/grpc_gen/simulation.pb.go ]; then \
+		mv services/sim-engine/simulation.pb.go services/sim-engine/internal/grpc_gen/; \
+		mv services/sim-engine/simulation_grpc.pb.go services/sim-engine/internal/grpc_gen/; \
+	fi
 	@echo "Generated Go stubs in services/sim-engine/internal/grpc_gen/"
 
 .PHONY: dataset-build

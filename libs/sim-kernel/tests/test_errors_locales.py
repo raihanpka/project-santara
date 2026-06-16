@@ -5,23 +5,23 @@ from __future__ import annotations
 import pytest
 
 from sim_kernel.errors import (
-    ErrAgentNotFound,
-    ErrInvalidArgument,
-    ErrSimFailed,
-    ErrSimNotFound,
-    ErrTickLimit,
+    AgentNotFoundError,
+    InvalidArgumentError,
     SantaraError,
+    SimFailedError,
+    SimNotFoundError,
+    TickLimitError,
 )
 from sim_kernel.locales import LOCALES, get_locale
 
 
 def test_error_slugs_are_stable() -> None:
     cases = [
-        (ErrSimNotFound(), "sim_not_found"),
-        (ErrAgentNotFound(), "agent_not_found"),
-        (ErrInvalidArgument(), "invalid_argument"),
-        (ErrSimFailed(), "sim_failed"),
-        (ErrTickLimit(), "tick_limit_exceeded"),
+        (SimNotFoundError(), "sim_not_found"),
+        (AgentNotFoundError(), "agent_not_found"),
+        (InvalidArgumentError(), "invalid_argument"),
+        (SimFailedError(), "sim_failed"),
+        (TickLimitError(), "tick_limit_exceeded"),
     ]
     for err, expected_slug in cases:
         assert err.slug == expected_slug
@@ -29,7 +29,7 @@ def test_error_slugs_are_stable() -> None:
 
 
 def test_error_inherits_base() -> None:
-    assert issubclass(ErrSimNotFound, SantaraError)
+    assert issubclass(SimNotFoundError, SantaraError)
     assert issubclass(SantaraError, Exception)
 
 

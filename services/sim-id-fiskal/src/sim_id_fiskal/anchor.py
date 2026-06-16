@@ -72,12 +72,17 @@ class FiscalStressTest:
     ) -> StressResult:
         rate = self._pass_through(fuel)
         if rate is None:
-            raise ValueError(
-                f"Unknown fuel: {fuel!r}. Use 'pertamax', 'pertalite', or 'solar'."
-            )
+            raise ValueError(f"Unknown fuel: {fuel!r}. Use 'pertamax', 'pertalite', or 'solar'.")
         impact = shock_pct * rate
-        notes = self._notes(fuel, shock_pct, rate, impact, latest_pertamax_idr_per_liter,
-                            latest_pertalite_idr_per_liter, latest_solar_idr_per_liter)
+        notes = self._notes(
+            fuel,
+            shock_pct,
+            rate,
+            impact,
+            latest_pertamax_idr_per_liter,
+            latest_pertalite_idr_per_liter,
+            latest_solar_idr_per_liter,
+        )
         return StressResult(
             shock=f"{fuel}_price_+{shock_pct:.0f}pct",
             shock_pct=shock_pct,

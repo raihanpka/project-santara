@@ -18,21 +18,21 @@ class SantaraError(Exception):
         self.message = message or self.slug
 
 
-class ErrSimNotFound(SantaraError):
+class SimNotFoundError(SantaraError):
     slug = "sim_not_found"
 
 
-class ErrAgentNotFound(SantaraError):
+class AgentNotFoundError(SantaraError):
     slug = "agent_not_found"
 
 
-class ErrInvalidArgument(SantaraError):
+class InvalidArgumentError(SantaraError):
     slug = "invalid_argument"
 
 
-class ErrSimFailed(SantaraError):
+class SimFailedError(SantaraError):
     slug = "sim_failed"
 
 
-class ErrTickLimit(SantaraError):
+class TickLimitError(SantaraError):
     slug = "tick_limit_exceeded"

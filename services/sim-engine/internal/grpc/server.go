@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
-	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
 	"github.com/raihanpka/sim-engine/internal/app"
+	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
 	"github.com/raihanpka/sim-engine/internal/state"
 )
 

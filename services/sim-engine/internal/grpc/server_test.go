@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/raihanpka/sim-engine/internal/app"
-	"github.com/raihanpka/sim-engine/internal/state"
 	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
+	"github.com/raihanpka/sim-engine/internal/state"
 )
 
 func newTestServer(t *testing.T) (pb.SimulationServiceClient, *state.Store) {
@@ -192,7 +192,7 @@ func TestApplyFiscalShock(t *testing.T) {
 		Shock: &pb.Shock{
 			SimulationId: id,
 			Kind: &pb.Shock_Fiscal{Fiscal: &pb.FiscalShock{
-				PertamaxPriceChangePct: 30.0,
+				PertamaxPriceChangePct:  30.0,
 				PertalitePriceChangePct: 0,
 				SolarPriceChangePct:     0,
 				BiRateChangeBps:         25,

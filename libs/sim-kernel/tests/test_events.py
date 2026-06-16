@@ -27,10 +27,9 @@ def test_bus_subscribers_receive_only_matching_type() -> None:
 def test_outbox_drain_only_committed() -> None:
     out = OutboxRecorder()
     e1 = out.record(Event(type="x", payload={}))
-    e2 = out.record(Event(type="x", payload={}))
+    out.record(Event(type="x", payload={}))
     out.mark_committed(e1)
     drained = out.drain_committed()
     assert len(drained) == 1
     assert drained[0] is e1.event
-    # e2 stays pending
     assert len(out._entries) == 1

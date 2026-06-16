@@ -6,11 +6,11 @@ I/O at the edge; the library itself stays free of side effects.
 """
 
 from sim_kernel.errors import (
-    ErrAgentNotFound,
-    ErrInvalidArgument,
-    ErrSimFailed,
-    ErrSimNotFound,
-    ErrTickLimit,
+    AgentNotFoundError,
+    InvalidArgumentError,
+    SimFailedError,
+    SimNotFoundError,
+    TickLimitError,
 )
 from sim_kernel.events import Event, EventBus, OutboxEntry, OutboxRecorder
 from sim_kernel.locales import LOCALES, Locale, get_locale
@@ -30,11 +30,11 @@ __version__ = "0.1.0"
 __all__ = [
     "Agent",
     "AgentKind",
-    "ErrAgentNotFound",
-    "ErrInvalidArgument",
-    "ErrSimFailed",
-    "ErrSimNotFound",
-    "ErrTickLimit",
+    "AgentNotFoundError",
+    "InvalidArgumentError",
+    "SimFailedError",
+    "SimNotFoundError",
+    "TickLimitError",
     "Event",
     "EventBus",
     "LOCALES",

@@ -15,11 +15,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	grpcserver "github.com/raihanpka/sim-engine/internal/grpc"
 	"github.com/raihanpka/sim-engine/internal/app"
 	"github.com/raihanpka/sim-engine/internal/config"
-	"github.com/raihanpka/sim-engine/internal/state"
+	grpcserver "github.com/raihanpka/sim-engine/internal/grpc"
 	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
+	"github.com/raihanpka/sim-engine/internal/state"
 
 	_ "github.com/raihanpka/sim-engine/internal/telemetry"
 )

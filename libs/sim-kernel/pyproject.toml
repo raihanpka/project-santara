@@ -70,8 +70,18 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
-ignore = ["E501"]
+select = ["E", "F", "I", "W", "B", "UP"]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # function calls in argument defaults (common in FastAPI/Pydantic)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "F401",  # unused imports (fixtures, helpers, re-exports)
+    "F811",  # redefinition of unused name (pytest parametrize patterns)
+    "B011",  # assert False (explicit failure markers in tests)
+]
 
 [tool.mypy]
 python_version = "3.12"

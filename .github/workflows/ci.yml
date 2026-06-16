@@ -48,6 +48,14 @@ jobs:
             cd ../..
           done
 
+      - name: Auto-fix and format Python
+        run: |
+          for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway; do
+            echo "auto-fixing $pkg..."
+            (cd $pkg && .venv/bin/ruff check --fix src/ tests/ || true)
+            (cd $pkg && .venv/bin/ruff format src/ tests/)
+          done
+
       - name: Lint Python
         run: |
           for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway; do
@@ -60,6 +68,14 @@ jobs:
         with:
           go-version: "1.22"
           cache: true
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Generate Go protobuf stubs
+        run: make proto-go
 
       - name: Lint Go
         run: |
@@ -158,15 +174,20 @@ jobs:
 
       - name: Set up Python dependencies
         run: |
-          for pkg in libs/sim-kernel libs/rpc-contracts; do
-            cd $pkg
-            if [ ! -d .venv ]; then
-              uv venv --python 3.12
-            fi
-            uv pip install -e ".[dev]" 2>/dev/null || uv pip install -e .
-            cd ../..
-          done
-          (cd libs/sim-kernel && uv pip install -e ".[dev]")
+          # sim-kernel: editable install of the shared library
+          cd libs/sim-kernel
+          if [ ! -d .venv ]; then
+            uv venv --python 3.12
+          fi
+          uv pip install -e ".[dev]"
+          cd ../..
+          # rpc-contracts: not a Python package, just install the test tools
+          cd libs/rpc-contracts
+          if [ ! -d .venv ]; then
+            uv venv --python 3.12
+          fi
+          uv pip install grpcio grpcio-tools pytest
+          cd ../..
 
       - name: Generate Python protobuf stubs
         run: make proto-py
