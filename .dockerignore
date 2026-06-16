@@ -1,0 +1,92 @@
+# Repo metadata
+.git
+.gitignore
+.gitattributes
+.github
+.omo
+.claude
+.cursor
+.idea
+.vscode
+
+# Secrets and env files
+*.env
+.env
+.envrc
+*.key
+*.pem
+
+# Temp
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# OS files
+*.DS_Store
+__MACOSX
+
+# Python
+__pycache__
+*.py[codz]
+*$py.class
+*.so
+.venv
+venv
+env/
+ENV/
+*.egg-info
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.mesonpy.cfg
+.mesonpy.db
+tests/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+services/*/bin/
+test/
+
+# Generated protobuf stubs
+libs/rpc-contracts/python/sim_rpc/simulation_pb2.py
+libs/rpc-contracts/python/sim_rpc/simulation_pb2_grpc.py
+services/sim-engine/internal/grpc_gen/simulation.pb.go
+services/sim-engine/internal/grpc_gen/simulation_grpc.pb.go
+
+# Docs (not needed in container images)
+docs
+docs-id
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+RELEASE.md
+README.md
+
+# Datasets (too large for container images)
+libs/sim-datasets/*/dist
+libs/sim-datasets/*/build.py
+libs/sim-datasets/*/sources
+libs/sim-datasets/*/provenance.csv
+
+# Test fixtures and dev artifacts
+services/*/test/
+libs/*/test/
+services/*/.pytest_cache/
+libs/*/.pytest_cache/

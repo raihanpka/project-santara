@@ -1,4 +1,4 @@
-name: ci
+name: validate
 
 on:
   push:
@@ -6,73 +6,246 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  python:
-    name: Python lint + test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Install uv
         run: pip install uv
-      - name: Set up sim-kernel
-        run: |
-          cd libs/sim-kernel
-          uv venv --python 3.12
-          uv pip install -e ".[dev]"
-      - name: Set up sim-id-fiskal
-        run: |
-          cd services/sim-id-fiskal
-          uv venv --python 3.12
-          uv pip install -e ".[dev]"
-      - name: Set up sim-gateway
-        run: |
-          cd services/sim-gateway
-          uv venv --python 3.12
-          uv pip install -e ".[dev]"
-      - name: Set up rpc-contracts (Python stubs)
-        run: |
-          cd libs/rpc-contracts
-          uv venv --python 3.12
-          uv pip install grpcio grpcio-tools pytest
-      - name: Run sim-kernel tests
-        run: |
-          cd libs/sim-kernel
-          .venv/bin/pytest --tb=short -q
-      - name: Run sim-id-fiskal tests
-        run: |
-          cd services/sim-id-fiskal
-          .venv/bin/pytest --tb=short -q
-      - name: Run sim-gateway tests
-        run: |
-          cd services/sim-gateway
-          .venv/bin/pytest --tb=short -q
-      - name: Run sim-engine integration test
-        run: |
-          cd services/sim-engine
-          go build -o bin/sim-engine-server ./cmd/server
-          cd ../..
-          libs/rpc-contracts/.venv/bin/pytest libs/rpc-contracts/python/tests/ -v
 
-  go:
-    name: Go build + test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Cache Python venvs
+        uses: actions/cache@v4
+        with:
+          path: |
+            libs/sim-kernel/.venv
+            services/sim-id-fiskal/.venv
+            services/sim-gateway/.venv
+          key: py-venv-${{ hashFiles('libs/sim-kernel/pyproject.toml', 'services/sim-id-fiskal/pyproject.toml', 'services/sim-gateway/pyproject.toml') }}
+
+      - name: Install Python services
+        run: |
+          for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway; do
+            cd $pkg
+            if [ ! -d .venv ]; then
+              uv venv --python 3.12
+              uv pip install -e ".[dev]"
+            fi
+            cd ../..
+          done
+
+      - name: Lint Python
+        run: |
+          for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway; do
+            echo "linting $pkg..."
+            (cd $pkg && .venv/bin/ruff check src/ tests/)
+          done
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - name: Build sim-engine
-        run: |
-          cd services/sim-engine
-          go build -o bin/sim-engine-server ./cmd/server
-      - name: Test sim-engine
-        run: |
-          cd services/sim-engine
-          go test -count=1 -race ./...
-      - name: Lint sim-engine
+          cache: true
+
+      - name: Lint Go
         run: |
           cd services/sim-engine
           go vet ./...
+          if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then
+            echo "Files need gofmt formatting:"
+            gofmt -l .
+            exit 1
+          fi
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Cache Python venvs
+        uses: actions/cache@v4
+        with:
+          path: |
+            libs/sim-kernel/.venv
+            services/sim-id-fiskal/.venv
+            services/sim-gateway/.venv
+          key: py-venv-${{ hashFiles('libs/sim-kernel/pyproject.toml', 'services/sim-id-fiskal/pyproject.toml', 'services/sim-gateway/pyproject.toml') }}
+
+      - name: Install Python services
+        run: |
+          for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway; do
+            cd $pkg
+            if [ ! -d .venv ]; then
+              uv venv --python 3.12
+              uv pip install -e ".[dev]"
+            fi
+            cd ../..
+          done
+
+      - name: Test Python
+        run: |
+          libs/sim-kernel/.venv/bin/pytest libs/sim-kernel/tests/ --tb=short -q
+          (cd services/sim-id-fiskal && .venv/bin/pytest tests/ --tb=short -q)
+          (cd services/sim-gateway && .venv/bin/pytest tests/ --tb=short -q)
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Generate Go protobuf stubs
+        run: make proto-go
+
+      - name: Test Go
+        run: |
+          cd services/sim-engine
+          go test -count=1 -race ./...
+
+  end-to-end:
+    name: End-to-end test
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Set up Python dependencies
+        run: |
+          for pkg in libs/sim-kernel libs/rpc-contracts; do
+            cd $pkg
+            if [ ! -d .venv ]; then
+              uv venv --python 3.12
+            fi
+            uv pip install -e ".[dev]" 2>/dev/null || uv pip install -e .
+            cd ../..
+          done
+          (cd libs/sim-kernel && uv pip install -e ".[dev]")
+
+      - name: Generate Python protobuf stubs
+        run: make proto-py
+
+      - name: Generate Go protobuf stubs
+        run: make proto-go
+
+      - name: Build Go binary
+        run: |
+          cd services/sim-engine
+          go build -o bin/sim-engine-server ./cmd/server
+
+      - name: Run end-to-end test
+        run: |
+          libs/rpc-contracts/.venv/bin/pytest libs/rpc-contracts/python/tests/ -v
+
+  container-images:
+    name: Container images
+    needs: [end-to-end]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push sim-engine
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/sim-engine/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/raihanpka/sim-engine:${{ steps.version.outputs.version }}
+            ghcr.io/raihanpka/sim-engine:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push sim-gateway
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/sim-gateway/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/raihanpka/sim-gateway:${{ steps.version.outputs.version }}
+            ghcr.io/raihanpka/sim-gateway:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push sim-id-fiskal
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/sim-id-fiskal/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/raihanpka/sim-id-fiskal:${{ steps.version.outputs.version }}
+            ghcr.io/raihanpka/sim-id-fiskal:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

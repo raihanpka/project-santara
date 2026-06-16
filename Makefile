@@ -117,8 +117,9 @@ proto-py:
 		exit 1; \
 	fi
 	@if [ ! -d libs/sim-kernel/.venv ]; then \
-		cd libs/sim-kernel && uv venv --python 3.12 && uv pip install grpcio grpcio-tools; \
+		cd libs/sim-kernel && uv venv --python 3.12; \
 	fi
+	cd libs/sim-kernel && uv pip install grpcio grpcio-tools --quiet
 	cd libs/sim-kernel && .venv/bin/python -m grpc_tools.protoc \
 		--python_out=../rpc-contracts/python/sim_rpc \
 		--grpc_python_out=../rpc-contracts/python/sim_rpc \
@@ -144,7 +145,7 @@ proto-go:
 		echo "Installing protoc-gen-go-grpc..."; \
 		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest; \
 	fi
-	cd services/sim-engine && protoc \
+	cd services/sim-engine && PATH="$$(go env GOPATH)/bin:$$PATH" protoc \
 		--proto_path=../../libs/rpc-contracts/proto \
 		--go_out=internal/grpc_gen \
 		--go_opt=paths=source_relative \
