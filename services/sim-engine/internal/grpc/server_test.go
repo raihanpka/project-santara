@@ -14,9 +14,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/raihanpka/sim-engine/internal/app"
-	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
-	"github.com/raihanpka/sim-engine/internal/state"
+	"github.com/raihanpka/project-santara/services/sim-engine/internal/app"
+	pb "github.com/raihanpka/project-santara/services/sim-engine/internal/grpc_gen"
+	"github.com/raihanpka/project-santara/services/sim-engine/internal/state"
 )
 
 func newTestServer(t *testing.T) (pb.SimulationServiceClient, *state.Store) {
@@ -44,7 +44,7 @@ func newTestServer(t *testing.T) (pb.SimulationServiceClient, *state.Store) {
 		t.Fatalf("grpc.NewClient: %v", err)
 	}
 	t.Cleanup(func() {
-		conn.Close()
+		_ = conn.Close()
 		g.Stop()
 		_ = lis.Close()
 	})

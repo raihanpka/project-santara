@@ -5,17 +5,19 @@ Endpoints:
   GET  /.well-known/agent-card.json    A2A AgentCard
   POST /a2a                            A2A JSON-RPC entry
 
-For v0.1.0 the gateway only forwards "ask" calls to sim-id-fiskal
-via HTTP. gRPC to sim-engine, MCP server hub, and full JWT are
-later phases.
+For v0.2.0 the gateway routes by scenario to the matching sim-id
+service. JWT is HS256 with aud and iss enforced. Structured logging
+via structlog.
 """
 
 from __future__ import annotations
 
 import os
+from enum import StrEnum
 from typing import Any
 
 import httpx
+import structlog
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -26,14 +28,38 @@ from sim_kernel.a2a import (
 )
 
 FISKAL_URL = os.environ.get("SIM_ID_FISKAL_URL", "http://sim-id-fiskal:8001")
+POLITIK_URL = os.environ.get("SIM_ID_POLITIK_URL", "http://sim-id-politik:8002")
+IKLIM_URL = os.environ.get("SIM_ID_IKLIM_URL", "http://sim-id-iklim:8003")
 GATEWAY_JWT_SECRET = os.environ.get(
     "GATEWAY_JWT_SECRET", "ponytail: dev only, replace in prod"
-)  # ponytail:
+)
+GATEWAY_JWT_AUDIENCE = os.environ.get("GATEWAY_JWT_AUDIENCE", "santara-gateway")
+GATEWAY_JWT_ISSUER = os.environ.get("GATEWAY_JWT_ISSUER", "santara")
+
+log = structlog.get_logger()
+
+
+class Scenario(StrEnum):
+    PERTAMAX_30PCT = "pertamax_30pct"
+    MBG_SWING_VOTER_2029 = "mbg_swing_voter_2029"
+    KARHUTLA_RIAU_HAZE = "karhutla_riau_haze"
+
+
+SCENARIO_TO_URL: dict[Scenario, str] = {
+    Scenario.PERTAMAX_30PCT: FISKAL_URL,
+    Scenario.MBG_SWING_VOTER_2029: POLITIK_URL,
+    Scenario.KARHUTLA_RIAU_HAZE: IKLIM_URL,
+}
+
+
+# ponytail: warn loudly when the dev default secret is in use.
+if GATEWAY_JWT_SECRET.startswith("ponytail:"):
+    log.warning("gateway.jwt.dev_secret_in_use", message="Replace GATEWAY_JWT_SECRET before production.")
 
 app = FastAPI(
     title="Santara sim-gateway",
-    description="A2A router, MCP server hub (planned), JWT auth.",
-    version="0.1.0",
+    description="A2A router, MCP server hub (planned), JWT auth (HS256 with aud and iss).",
+    version="0.2.0",
 )
 
 
@@ -62,6 +88,28 @@ def agent_card() -> dict[str, Any]:
                     "What happens to inflation if Pertamax rises 30 percent?",
                 ],
             ),
+            AgentSkill(
+                id="ask_politik",
+                name="Ask a political question",
+                description=(
+                    "Route a Bahasa Indonesia or English question about Indonesian "
+                    "political dynamics to the sim-id-politik service."
+                ),
+                examples=[
+                    "Apa dampak MBG terhadap swing voter di 2029?",
+                ],
+            ),
+            AgentSkill(
+                id="ask_iklim",
+                name="Ask a climate question",
+                description=(
+                    "Route a Bahasa Indonesia or English question about Indonesian "
+                    "climate emergency to the sim-id-iklim service."
+                ),
+                examples=[
+                    "Kapan karhutla Riau menjadi krisis haze lintas batas?",
+                ],
+            ),
         ],
     )
     return card.to_dict()
@@ -87,7 +135,10 @@ class JsonRpcResponse(BaseModel):
 
 
 def _check_bearer(request: Request) -> None:
-    """Verify the bearer token. Raises 401 on failure."""
+    """Verify the bearer token. Raises 401 on failure.
+
+    HS256 with aud and iss enforced. exp is enforced by default by pyjwt.
+    """
     import jwt  # ponytail: import only when needed to keep cold start light
 
     auth = request.headers.get("Authorization", "")
@@ -95,13 +146,24 @@ def _check_bearer(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = auth[len("Bearer ") :]
     try:
-        jwt.decode(token, GATEWAY_JWT_SECRET, algorithms=["HS256"])
+        jwt.decode(
+            token,
+            GATEWAY_JWT_SECRET,
+            algorithms=["HS256"],
+            audience=GATEWAY_JWT_AUDIENCE,
+            issuer=GATEWAY_JWT_ISSUER,
+        )
     except jwt.PyJWTError as e:
+        log.warning("gateway.jwt.invalid", error=str(e))
         raise HTTPException(status_code=401, detail=f"Invalid token: {e}") from e
 
 
 @app.post("/a2a", response_model=JsonRpcResponse)
 async def a2a(req: JsonRpcRequest, request: Request) -> JSONResponse:
+    # JSON-RPC protocol errors return HTTP 200 with the error in
+    # the body. HTTP 4xx is reserved for transport-level issues
+    # (missing or invalid bearer is 401, downstream validation
+    # surfaces as 502). This matches the JSON-RPC 2.0 spec.
     if req.method != "ask":
         return JSONResponse(
             status_code=200,
@@ -115,8 +177,26 @@ async def a2a(req: JsonRpcRequest, request: Request) -> JSONResponse:
 
     _check_bearer(request)
     question = req.params.get("question", "")
-    fuel = req.params.get("fuel", "pertamax")
-    shock_pct = req.params.get("shock_pct", 30.0)
+    scenario_str = req.params.get("scenario", Scenario.PERTAMAX_30PCT.value)
+
+    try:
+        scenario = Scenario(scenario_str)
+    except ValueError:
+        log.info("gateway.scenario.unknown", scenario=scenario_str)
+        return JSONResponse(
+            status_code=200,
+            content=JsonRpcResponse(
+                id=req.id,
+                error=JsonRpcError(
+                    code=-32602,
+                    message=(
+                        f"Unknown scenario: {scenario_str!r}. "
+                        f"Use one of: {[s.value for s in Scenario]}"
+                    ),
+                ).model_dump(),
+            ).model_dump(),
+        )
+
     if not question:
         return JSONResponse(
             status_code=200,
@@ -128,21 +208,50 @@ async def a2a(req: JsonRpcRequest, request: Request) -> JSONResponse:
             ).model_dump(),
         )
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        r = await client.post(
-            f"{FISKAL_URL}/ask",
-            json={
-                "question": question,
-                "fuel": fuel,
-                "shock_pct": shock_pct,
-            },
+    target_url = SCENARIO_TO_URL[scenario]
+    service_body: dict[str, Any] = {"question": question, "scenario": scenario.value}
+    for key, value in req.params.items():
+        if key not in ("question", "scenario"):
+            service_body[key] = value
+
+    log.info("gateway.forward", scenario=scenario.value, target=target_url)
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(f"{target_url}/ask", json=service_body)
+            r.raise_for_status()
+            service_result = r.json()["result"]
+    except httpx.HTTPStatusError as e:
+        log.warning(
+            "gateway.downstream.http_error",
+            scenario=scenario.value,
+            status=e.response.status_code,
         )
-        r.raise_for_status()
-        fiskal_result = r.json()["result"]
+        return JSONResponse(
+            status_code=502,
+            content=JsonRpcResponse(
+                id=req.id,
+                error=JsonRpcError(
+                    code=-32603,
+                    message=f"Downstream service error: {e.response.status_code}",
+                ).model_dump(),
+            ).model_dump(),
+        )
+    except httpx.RequestError as e:
+        log.warning("gateway.downstream.unavailable", scenario=scenario.value, error=str(e))
+        return JSONResponse(
+            status_code=502,
+            content=JsonRpcResponse(
+                id=req.id,
+                error=JsonRpcError(
+                    code=-32603,
+                    message=f"Downstream service unavailable: {e}",
+                ).model_dump(),
+            ).model_dump(),
+        )
 
     return JSONResponse(
         content=JsonRpcResponse(
             id=req.id,
-            result={"answer": fiskal_result["notes"], "details": fiskal_result},
+            result={"answer": service_result.get("notes", ""), "details": service_result},
         ).model_dump(),
     )

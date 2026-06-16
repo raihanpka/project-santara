@@ -8,8 +8,8 @@ package app
 import (
 	"context"
 
-	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
-	"github.com/raihanpka/sim-engine/internal/state"
+	pb "github.com/raihanpka/project-santara/services/sim-engine/internal/grpc_gen"
+	"github.com/raihanpka/project-santara/services/sim-engine/internal/state"
 )
 
 // TickEngine runs simulation ticks against the state store.

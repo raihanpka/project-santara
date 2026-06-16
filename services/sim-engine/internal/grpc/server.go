@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
-	"github.com/raihanpka/sim-engine/internal/app"
-	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
-	"github.com/raihanpka/sim-engine/internal/state"
+	"github.com/raihanpka/project-santara/services/sim-engine/internal/app"
+	pb "github.com/raihanpka/project-santara/services/sim-engine/internal/grpc_gen"
+	"github.com/raihanpka/project-santara/services/sim-engine/internal/state"
 )
 
 // Server is the gRPC service implementation.

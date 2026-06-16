@@ -1,0 +1,66 @@
+# Codecov configuration for Project Santara.
+# ponytail: monorepo with mixed Python and Go. One umbrella flag for the
+# whole project, two child flags for the language tiers.
+# Docs: https://docs.codecov.com/docs/codecovyml-reference
+
+codecov:
+  require_ci_to_pass: false
+  notify:
+    after_n_builds: 2
+    wait_for_ci: true
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        if_ci_failed: error
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...90"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        if_ci_failed: error
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+flag_management:
+  default_rules:
+    carryforward: true
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1%
+      - type: patch
+        target: auto
+        threshold: 1%
+  individual_flags:
+    - name: python
+      paths:
+        - libs/sim-kernel/
+        - services/sim-id-fiskal/
+        - services/sim-gateway/
+        - services/sim-id-politik/
+        - services/sim-id-iklim/
+    - name: go
+      paths:
+        - services/sim-engine/
+
+comment:
+  layout: "reach, diff, flags, files, components, suggestedfixes"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  branches:
+    - main

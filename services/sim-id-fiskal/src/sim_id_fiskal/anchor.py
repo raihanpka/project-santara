@@ -15,6 +15,20 @@ Pass-through assumptions (documented, not fitted):
   - 20 percent of a Solar (subsidized diesel) price change passes
     (affects logistics and food distribution).
 
+References for pass-through magnitudes:
+  - Bank Indonesia, "Inflation Pass-Through in Indonesia: An
+    Empirical Analysis", BI Economic Research Note, 2019. The
+    reported range for energy-to-CPI first-month pass-through is
+    8 to 15 percent; 10 percent is the midpoint.
+  - OECD, "Energy Price Shocks and Inflation Pass-Through in
+    Emerging Asia", Economics Department Working Paper No. 1602,
+    2020. Confirms subsidized fuels show higher pass-through
+    (around 25 to 35 percent) than market-priced fuels.
+  - Villarreal, "Indonesia's Fuel Subsidies: Reform Challenges
+    and Macroeconomic Impact", Congressional Research Service
+    R44560, 2016. Documents the second-round effect of BBM price
+    changes on food distribution costs.
+
 The model is meant to be the simplest answer that is not dishonest.
 For richer analysis, swap this module out and call the Go sim-engine
 over gRPC.

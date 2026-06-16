@@ -6,7 +6,62 @@ The English version of this file is canonical. The Bahasa Indonesia version live
 
 ## [Unreleased]
 
-No entries yet. The next entry will be the v0.2.0 milestone when the first sim-id service moves beyond the pass-through anchor model and `sim-engine` runs a real tick (not just a counter).
+No entries yet. The next entry will be the v0.3.0 milestone when `sim-engine` runs a real tick (not a counter) and the sim-id services have real models with citations instead of pass-through placeholders.
+
+## [0.2.0] - 2026-06-16
+
+### Summary
+
+Phase 2 ships the second and third anchor services (sim-id-politik for the MBG swing voter question, sim-id-iklim for the karhutla haze question), a scenario-based router in the gateway, Codecov integration, and several CI and Docker fixes that were caught by the release smoke test. The pass-through formulas are placeholders with citations needed, not real models (see Known limitations).
+
+### Added
+
+- **sim-id-politik**: pass-through political dynamics, `coverage * satisfaction * base_swing / 10000`. 12 tests pass, 95% line coverage.
+- **sim-id-iklim**: pass-through climate emergency, `hotspots * wind_speed_kmh * dry_days / 100`. Cross-border crisis threshold at haze index 500. 15 tests pass, 98% line coverage.
+- **Gateway scenario routing**: `Scenario` enum with `pertamax_30pct`, `mbg_swing_voter_2029`, `karhutla_riau_haze`. `SCENARIO_TO_URL` map. The AgentCard lists 3 skills.
+- **Gateway HTTP status codes**: 400 for client errors (unknown scenario, missing question, unknown method), 502 for downstream service failures. The JSON-RPC error body is preserved for protocol-level handling.
+- **Gateway JWT validation**: HS256 with `aud` and `iss` enforced. `exp` enforced by default. A startup warning is logged when the dev default secret is in use.
+- **Docker Compose healthchecks**: every Python service has a `urllib`-based healthcheck. The gateway waits for all three sim-id services to be healthy via `depends_on.condition: service_healthy`. The sim-engine gRPC healthcheck is downgraded to a TCP probe because `grpc_health_probe` is not in the Alpine image.
+- **Codecov integration**: `codecov.yml` at the repo root with monorepo flags (`python` and `go`). `require_ci_to_pass: false` so a Codecov outage does not break CI. Upload runs only on `main` (`if: github.ref == 'refs/heads/main'`).
+- **GHCR namespace fix**: image tags changed from `ghcr.io/raihanpka/sim-engine` to `ghcr.io/raihanpka/project-santara/sim-engine` so the package lives under the repo's namespace, not a separate user-level package.
+- **CI workflow rename**: `validate` renamed to `CI`.
+- **Makefile cleanup**: `clean-act` target clears `~/.cache/act/`, `~/.cache/actcache/`, and Docker prune. `coverage` target installs `pytest-cov` via `uv pip install` (the venvs do not have a `pip` binary).
+- **`.dockerignore`**: filters dev-only files (tests, `.venv`, generated stubs, docs, datasets) from the container image build context.
+
+### Changed
+
+- `services/sim-engine/go.mod` module path changed from `github.com/raihanpka/sim-engine` to `github.com/raihanpka/project-santara/services/sim-engine` so the Go module lives under the repo, not a separate user-level repo. All 5 Go source files updated. Go build and 4 Go tests still pass.
+- Go test step in CI split into `Test Go with race` (no coverage) and `Test Go with coverage` (no race, `set` mode). The coverage step adds `GOTOOLDIR` to `PATH` because the `setup-go` image does not include `covdata` on the default path.
+
+### Fixed
+
+- `lint` and `test` jobs now iterate over all 5 Python services (politik and iklim were missing from the v0.1.0 CI loops).
+- `cache-dependency-path: services/sim-engine/go.sum` added to both `Set up Go` steps. Without it, the cache step looked for `go.sum` at the repo root.
+- v0.1.0 tag push never triggered the workflow because the `on:` section did not include `tags:`. Added `tags: ['v*']` under `push:`. The container-images job now actually fires on tag pushes.
+
+### Known limitations
+
+- The pass-through formulas in sim-id-politik and sim-id-iklim have magic numbers (10000, 500, 100) with no real citation. They are placeholders. A future version must replace them with real models with citations.
+- The Go tick engine is still a counter, not a simulation. The `Run` RPC increments `tick` by `count`. Real tick logic is gated on benchmarks.
+- The new sim-id services re-implement their own Pydantic request/response models instead of using `sim-kernel.models` types. A future version must wire them through sim-kernel so the wire format is shared.
+- The gateway scenario map is hardcoded. Adding a fourth scenario requires editing three files (the enum, the map, the AgentCard, the test). A future version should use a registered handler interface.
+- sim-id services have no authentication. They are reachable from the gateway only by network topology. A future version must add a shared-secret or mTLS check.
+- No distributed tracing, no Prometheus metrics, no OpenTelemetry in the Python services. The Go service uses zerolog but the Python services print to stdout.
+- `sim-id-fiskal` does not yet read from the curated `indonesia-fiscal-pressure` dataset. A future version must wire the model to the latest Pertamax price from the dataset.
+- The Codecov upload only runs on `main`. Pull requests do not get coverage feedback yet.
+
+### Test Results (v0.2.0)
+
+- sim-kernel: 21 tests pass, 88% line coverage
+- sim-id-fiskal: 7 tests pass
+- sim-gateway: 10 tests pass (up from 7 in v0.1.0)
+- sim-id-politik: 12 tests pass, 95% line coverage
+- sim-id-iklim: 15 tests pass, 98% line coverage
+- sim-engine (Go): 4 tests pass
+
+Total: 69 tests across 6 packages. The Python integration test against the Go binary still passes.
+
+[0.2.0]: https://github.com/raihanpka/project-santara/releases/tag/v0.2.0
 
 ## [0.1.0] - 2026-06-16
 

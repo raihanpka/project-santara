@@ -1,16 +1,18 @@
 services:
   sim-engine:
     build:
-      context: ./services/sim-engine
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/sim-engine/Dockerfile
     container_name: santara-sim-engine
     ports:
       - "50052:50052"
     environment:
       SIM_ENGINE_GRPC_ADDR: ":50052"
       SIM_ENGINE_LOG_LEVEL: info
+    # ponytail: grpc_health_probe is not in the alpine image. Use a TCP probe
+    # until the binary is added to the Dockerfile or a sidecar is introduced.
     healthcheck:
-      test: ["CMD", "grpc_health_probe", "-addr=:50052"]
+      test: ["CMD-SHELL", "nc -z localhost 50052 || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -19,27 +21,82 @@ services:
 
   sim-id-fiskal:
     build:
-      context: ./services/sim-id-fiskal
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/sim-id-fiskal/Dockerfile
     container_name: santara-sim-id-fiskal
     ports:
       - "8001:8001"
     environment:
       PYTHONUNBUFFERED: "1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  sim-id-politik:
+    build:
+      context: .
+      dockerfile: ./services/sim-id-politik/Dockerfile
+    container_name: santara-sim-id-politik
+    ports:
+      - "8002:8002"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  sim-id-iklim:
+    build:
+      context: .
+      dockerfile: ./services/sim-id-iklim/Dockerfile
+    container_name: santara-sim-id-iklim
+    ports:
+      - "8003:8003"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   sim-gateway:
     build:
-      context: ./services/sim-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/sim-gateway/Dockerfile
     container_name: santara-sim-gateway
     ports:
       - "8000:8000"
     environment:
       PYTHONUNBUFFERED: "1"
       SIM_ID_FISKAL_URL: "http://sim-id-fiskal:8001"
+      SIM_ID_POLITIK_URL: "http://sim-id-politik:8002"
+      SIM_ID_IKLIM_URL: "http://sim-id-iklim:8003"
       GATEWAY_PUBLIC_URL: "http://localhost:8000"
       GATEWAY_JWT_SECRET: "ponytail: change me in production"
+      GATEWAY_JWT_AUDIENCE: "santara-gateway"
+      GATEWAY_JWT_ISSUER: "santara"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     depends_on:
-      - sim-id-fiskal
+      sim-id-fiskal:
+        condition: service_healthy
+      sim-id-politik:
+        condition: service_healthy
+      sim-id-iklim:
+        condition: service_healthy
     restart: unless-stopped

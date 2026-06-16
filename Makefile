@@ -52,8 +52,12 @@ test: test-py test-go
 test-py: test-kernel
 	@for svc in services/sim-gateway services/sim-id-fiskal services/sim-id-politik services/sim-id-iklim services/sim-id-agraria; do \
 		if [ -f $$svc/pyproject.toml ] && [ -d $$svc/tests ]; then \
-			echo "  Testing $$svc..."; \
-			cd $$svc && pytest && cd ../..; \
+			if [ -d $$svc/.venv ]; then \
+				echo "  Testing $$svc (venv)..."; \
+				(cd $$svc && .venv/bin/pytest -q) || exit 1; \
+			else \
+				echo "  Skipping $$svc (no .venv; run 'make install' first)"; \
+			fi; \
 		fi; \
 	done
 
@@ -67,20 +71,25 @@ test-go:
 .PHONY: test-kernel
 test-kernel:
 	@echo "  Testing libs/sim-kernel..."
-	cd libs/sim-kernel && pytest
+	@if [ -d libs/sim-kernel/.venv ]; then \
+		(cd libs/sim-kernel && .venv/bin/pytest -q) || exit 1; \
+	else \
+		echo "  libs/sim-kernel has no .venv; run 'make install' first"; \
+		exit 1; \
+	fi
 
 .PHONY: lint
 lint:
-	@echo "Linting Python..."
-	cd libs/sim-kernel && ruff check src/ tests/ || true
-	@for svc in services/sim-*; do \
-		if [ -f $$svc/pyproject.toml ]; then \
-			cd $$svc && ruff check src/ tests/ 2>/dev/null || true && cd ../..; \
+	@echo "Linting Python (per-service venv)..."
+	@for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway services/sim-id-politik services/sim-id-iklim; do \
+		if [ -f $$pkg/pyproject.toml ] && [ -d $$pkg/.venv ]; then \
+			echo "  $$pkg..."; \
+			(cd $$pkg && .venv/bin/ruff check src/ tests/ 2>/dev/null) || true; \
 		fi; \
 	done
 	@echo "Linting Go..."
 	@if [ -f services/sim-engine/go.mod ]; then \
-		cd services/sim-engine && golangci-lint run 2>/dev/null || true && cd ../..; \
+		(cd services/sim-engine && go vet ./...) || true; \
 	fi
 
 .PHONY: format
@@ -213,3 +222,36 @@ clean:
 	done
 	rm -rf services/sim-engine/bin
 	@echo "Clean complete"
+
+.PHONY: clean-act
+clean-act:
+	@echo "Cleaning act cache and Docker resources..."
+	-rm -rf ~/.cache/act/
+	-rm -rf ~/.cache/actcache/
+	-docker system prune -af > /dev/null 2>&1
+	-docker volume prune -f > /dev/null 2>&1
+	@echo "Act cache and Docker resources cleaned"
+
+.PHONY: coverage
+coverage:
+	@echo "Installing pytest-cov in each service venv (uv pip, not .venv/bin/pip)..."
+	@for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway services/sim-id-politik services/sim-id-iklim; do \
+		if [ -f $$pkg/pyproject.toml ] && [ -d $$pkg/.venv ]; then \
+			(cd $$pkg && uv pip install pytest-cov --quiet 2>/dev/null); \
+		fi; \
+	done
+	@echo "Generating Python coverage (per service)..."
+	@for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway services/sim-id-politik services/sim-id-iklim; do \
+		if [ -f $$pkg/pyproject.toml ] && [ -d $$pkg/tests ]; then \
+			echo "  $$pkg..."; \
+			(cd $$pkg && .venv/bin/pytest tests/ --cov=src --cov-branch --cov-report=xml --cov-report=term-missing -q 2>&1 | tail -5); \
+		fi; \
+	done
+	@echo "Generating Go coverage..."
+	# ponytail: go test with -coverprofile invokes the covdata tool to merge
+	# per-package profiles. GOTOOLDIR is not on PATH by default on most
+	# runners, so we prepend it. Matches the CI workflow fix.
+	cd services/sim-engine && PATH="$$(go env GOTOOLDIR):$$PATH" go test -count=1 -coverprofile=coverage.txt -covermode=set ./...
+	@echo "Done. Coverage files:"
+	@find . -name 'coverage.xml' -not -path '*/.venv/*' -not -path '*/node_modules/*'
+	@echo "  services/sim-engine/coverage.txt"

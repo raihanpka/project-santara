@@ -9,7 +9,7 @@ import (
 	"errors"
 	"sync"
 
-	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
+	pb "github.com/raihanpka/project-santara/services/sim-engine/internal/grpc_gen"
 )
 
 // ErrNotFound is returned when a simulation or agent does not exist.

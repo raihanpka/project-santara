@@ -13,11 +13,7 @@ The Project Santara maintainers take security seriously. This document explains 
 
 ## Reporting a Vulnerability
 
-Please report security issues privately, not as a public GitHub issue.
-
-**Email:** security@projectsantara.id
-
-**Response time:** We aim to acknowledge within 48 hours and provide a substantive response within 7 days.
+Please report security issues as a public GitHub issue.
 
 ### What to Include
 

@@ -1,13 +1,29 @@
 # Project Santara
 
 [![License](https://img.shields.io/github/license/raihanpka/project-santara)](./LICENSE)
-[![Release](https://img.shields.io/github/v/release/raihanpka/project-santara)](https://github.com/raihanpka/project-santara/releases)
 [![CI](https://github.com/raihanpka/project-santara/actions/workflows/ci.yml/badge.svg)](https://github.com/raihanpka/project-santara/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.12-blue)](./libs/sim-kernel/pyproject.toml)
+[![Codecov](https://codecov.io/gh/raihanpka/project-santara/branch/main/graph/badge.svg)](https://codecov.io/gh/raihanpka/project-santara)
+[![Go Report Card](https://goreportcard.com/badge/github.com/raihanpka/project-santara/services/sim-engine)](https://goreportcard.com/report/github.com/raihanpka/project-santara/services/sim-engine)
+[![Go Reference](https://pkg.go.dev/badge/github.com/raihanpka/project-santara/services/sim-engine.svg)](https://pkg.go.dev/github.com/raihanpka/project-santara/services/sim-engine)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](./libs/sim-kernel/pyproject.toml)
 
 An open-source counterfactual microservices platform for simulating Indonesia's economic, political, and climate systems. Python services handle language-model reasoning and protocol exposure. A Go service runs the simulation tick engine. A shared Python library called sim-kernel provides the domain models and protocol helpers.
 
 For the Indonesian version, see [PANDUAN.md].
+
+---
+
+## Services
+
+| Service | Language | Protocol | Port | Purpose |
+| --- | --- | --- | --- | --- |
+| sim-gateway | Python 3.12 | HTTP (A2A JSON-RPC) | 8000 | Routes anchor questions to sim-id services. JWT auth (HS256 with aud and iss). |
+| sim-engine | Go 1.22 | gRPC | 50052 | Tick engine and world state. The performance tier. |
+| sim-id-fiskal | Python 3.12 | HTTP (REST) | 8001 | Fiscal stress test. Pass-through model with curated Pertamax, Pertalite, and Solar prices. |
+| sim-id-politik | Python 3.12 | HTTP (REST) | 8002 | Political dynamics. Pass-through MBG swing voter model for 2029. |
+| sim-id-iklim | Python 3.12 | HTTP (REST) | 8003 | Climate emergency. Pass-through karhutla haze model for Riau. |
+
+Three more sim-id services (agraria, sosial, moneter) are planned for v0.5.0+.
 
 ---
 
@@ -45,9 +61,9 @@ pip install sim-kernel
 To pull the v0.1.0 container images directly from GHCR:
 
 ```bash
-docker pull ghcr.io/raihanpka/sim-engine:0.1.0
-docker pull ghcr.io/raihanpka/sim-gateway:0.1.0
-docker pull ghcr.io/raihanpka/sim-id-fiskal:0.1.0
+docker pull ghcr.io/raihanpka/project-santara/sim-engine:0.1.0
+docker pull ghcr.io/raihanpka/project-santara/sim-gateway:0.1.0
+docker pull ghcr.io/raihanpka/project-santara/sim-id-fiskal:0.1.0
 ```
 
 For the full story, head over to the [architecture documentation] or the [Indonesian front door][PANDUAN.md].
@@ -104,7 +120,7 @@ The full documentation set is in the `docs/` directory. The most important files
 - [PANDUAN.md] - Indonesian front door
 - [CHANGELOG.md] - release history
 
-The curated dataset for the first anchor question is published on the Hugging Face Hub at [raihanpka/indonesia-fiscal-pressure].
+The curated dataset for the first anchor question is published on the Hugging Face Hub at [raihanpka/indonesia-fiscal-pressure](https://huggingface.co/datasets/raihanpka/indonesia-fiscal-pressure).
 
 ---
 

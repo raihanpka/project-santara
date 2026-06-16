@@ -70,3 +70,25 @@ def test_ask_endpoint_unknown_fuel_400() -> None:
         json={"question": "x", "fuel": "avtur", "shock_pct": 10},
     )
     assert r.status_code == 400
+
+
+def test_ask_endpoint_shock_pct_out_of_range_422() -> None:
+    """Pydantic validation errors surface as 422, not 400.
+
+    400 is reserved for business-logic errors (unknown fuel, unknown
+    scenario). 422 is the FastAPI standard for schema validation
+    failures. Gateway forwards downstream 4xx as 502 to the A2A caller.
+    """
+    r = client.post(
+        "/ask",
+        json={"question": "x", "fuel": "pertamax", "shock_pct": 300},
+    )
+    assert r.status_code == 422
+
+
+def test_ask_endpoint_missing_question_422() -> None:
+    r = client.post(
+        "/ask",
+        json={"fuel": "pertamax", "shock_pct": 10},
+    )
+    assert r.status_code == 422

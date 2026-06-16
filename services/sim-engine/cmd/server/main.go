@@ -15,13 +15,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/raihanpka/sim-engine/internal/app"
-	"github.com/raihanpka/sim-engine/internal/config"
-	grpcserver "github.com/raihanpka/sim-engine/internal/grpc"
-	pb "github.com/raihanpka/sim-engine/internal/grpc_gen"
-	"github.com/raihanpka/sim-engine/internal/state"
+	"github.com/raihanpka/project-santara/services/sim-engine/internal/app"
+	"github.com/raihanpka/project-santara/services/sim-engine/internal/config"
+	grpcserver "github.com/raihanpka/project-santara/services/sim-engine/internal/grpc"
+	pb "github.com/raihanpka/project-santara/services/sim-engine/internal/grpc_gen"
+	"github.com/raihanpka/project-santara/services/sim-engine/internal/state"
 
-	_ "github.com/raihanpka/sim-engine/internal/telemetry"
+	_ "github.com/raihanpka/project-santara/services/sim-engine/internal/telemetry"
 )
 
 func main() {

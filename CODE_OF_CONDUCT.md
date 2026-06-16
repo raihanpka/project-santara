@@ -40,9 +40,7 @@ Community leaders have the right and responsibility to remove, edit, or reject c
 This Code of Conduct applies within all community spaces, including but not limited to:
 
 - The GitHub repository at github.com/raihanpka/project-santara
-- The Discord server
 - The Threads and Twitter accounts
-- The monthly community call
 - Any other forum or channel created by the project
 
 It also applies when an individual is officially representing the community in public spaces. Examples of representing the community include using an official project email address, posting via an official social media account, or acting as an appointed representative at an online or offline event.

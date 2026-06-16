@@ -1,8 +1,9 @@
-name: validate
+name: CI
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -74,6 +75,7 @@ jobs:
         with:
           go-version: "1.22"
           cache: true
+          cache-dependency-path: services/sim-engine/go.sum
 
       - name: Install protoc
         run: |
@@ -119,11 +121,13 @@ jobs:
             libs/sim-kernel/.venv
             services/sim-id-fiskal/.venv
             services/sim-gateway/.venv
-          key: py-venv-${{ hashFiles('libs/sim-kernel/pyproject.toml', 'services/sim-id-fiskal/pyproject.toml', 'services/sim-gateway/pyproject.toml') }}
+            services/sim-id-politik/.venv
+            services/sim-id-iklim/.venv
+          key: py-venv-${{ hashFiles('libs/sim-kernel/pyproject.toml', 'services/sim-id-fiskal/pyproject.toml', 'services/sim-gateway/pyproject.toml', 'services/sim-id-politik/pyproject.toml', 'services/sim-id-iklim/pyproject.toml') }}
 
       - name: Install Python services
         run: |
-          for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway; do
+          for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway services/sim-id-politik services/sim-id-iklim; do
             cd $pkg
             if [ ! -d .venv ]; then
               uv venv --python 3.12
@@ -132,25 +136,52 @@ jobs:
             cd ../..
           done
 
-      - name: Test Python
+      - name: Test Python with coverage
         run: |
-          libs/sim-kernel/.venv/bin/pytest libs/sim-kernel/tests/ --tb=short -q
-          (cd services/sim-id-fiskal && .venv/bin/pytest tests/ --tb=short -q)
-          (cd services/sim-gateway && .venv/bin/pytest tests/ --tb=short -q)
+          for pkg in libs/sim-kernel services/sim-id-fiskal services/sim-gateway services/sim-id-politik services/sim-id-iklim; do
+            echo "Testing $pkg..."
+            (cd $pkg && .venv/bin/pytest tests/ --cov=src --cov-branch --cov-report=xml --cov-report=term-missing --tb=short -q)
+          done
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.22"
           cache: true
+          cache-dependency-path: services/sim-engine/go.sum
 
       - name: Generate Go protobuf stubs
         run: make proto-go
 
-      - name: Test Go
+      - name: Test Go with race
         run: |
           cd services/sim-engine
           go test -count=1 -race ./...
+
+      - name: Test Go
+        run: |
+          cd services/sim-engine
+          # ponytail: skipping -coverprofile because the GitHub Actions
+          # runner image ships a Go toolchain without covdata in
+          # GOTOOLDIR. go test -coverprofile fails with
+          # 'go: no such tool "covdata"' on this image regardless of
+          # PATH. Re-enable coverage when the runner image includes
+          # covdata or when we install it from golang.org/x/tools.
+          go test -count=1 ./...
+
+      - name: Upload coverage to Codecov
+        if: github.ref == 'refs/heads/main'
+        uses: codecov/codecov-action@v5
+        with:
+          files: |
+            libs/sim-kernel/coverage.xml
+            services/sim-id-fiskal/coverage.xml
+            services/sim-gateway/coverage.xml
+            services/sim-id-politik/coverage.xml
+            services/sim-id-iklim/coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   end-to-end:
     name: End-to-end test
@@ -174,6 +205,7 @@ jobs:
         with:
           go-version: "1.22"
           cache: true
+          cache-dependency-path: services/sim-engine/go.sum
 
       - name: Install uv
         run: pip install uv
@@ -253,10 +285,10 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ghcr.io/raihanpka/sim-engine:${{ steps.version.outputs.version }}
-            ghcr.io/raihanpka/sim-engine:latest
-            docker.io/raihanpka/sim-engine:${{ steps.version.outputs.version }}
-            docker.io/raihanpka/sim-engine:latest
+            ghcr.io/raihanpka/project-santara/sim-engine:${{ steps.version.outputs.version }}
+            ghcr.io/raihanpka/project-santara/sim-engine:latest
+            docker.io/raihanpka/project-santara/sim-engine:${{ steps.version.outputs.version }}
+            docker.io/raihanpka/project-santara/sim-engine:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -268,10 +300,10 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ghcr.io/raihanpka/sim-gateway:${{ steps.version.outputs.version }}
-            ghcr.io/raihanpka/sim-gateway:latest
-            docker.io/raihanpka/sim-gateway:${{ steps.version.outputs.version }}
-            docker.io/raihanpka/sim-gateway:latest
+            ghcr.io/raihanpka/project-santara/sim-gateway:${{ steps.version.outputs.version }}
+            ghcr.io/raihanpka/project-santara/sim-gateway:latest
+            docker.io/raihanpka/project-santara/sim-gateway:${{ steps.version.outputs.version }}
+            docker.io/raihanpka/project-santara/sim-gateway:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -283,10 +315,10 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ghcr.io/raihanpka/sim-id-fiskal:${{ steps.version.outputs.version }}
-            ghcr.io/raihanpka/sim-id-fiskal:latest
-            docker.io/raihanpka/sim-id-fiskal:${{ steps.version.outputs.version }}
-            docker.io/raihanpka/sim-id-fiskal:latest
+            ghcr.io/raihanpka/project-santara/sim-id-fiskal:${{ steps.version.outputs.version }}
+            ghcr.io/raihanpka/project-santara/sim-id-fiskal:latest
+            docker.io/raihanpka/project-santara/sim-id-fiskal:${{ steps.version.outputs.version }}
+            docker.io/raihanpka/project-santara/sim-id-fiskal:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

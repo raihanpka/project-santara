@@ -1,4 +1,4 @@
-module github.com/raihanpka/sim-engine
+module github.com/raihanpka/project-santara/services/sim-engine
 
 go 1.25.0
 
