@@ -20,7 +20,7 @@ For the commit message convention, see [COMMIT_STYLE.md](docs/COMMIT_STYLE.md). 
 
 ## 1. Code of Conduct
 
-All participants are expected to follow the [Code of Conduct](./CODE_OF_CONDUCT.md). The short version: be respectful, assume good faith, give credit, focus on what is best for the community. Violations can be reported to conduct@projectsantara.id.
+All participants are expected to follow the [Code of Conduct](./CODE_OF_CONDUCT.md). The short version: be respectful, assume good faith, give credit, focus on what is best for the community. Violations can be reported to me@raihanpk.com.
 
 ## 2. How to Contribute
 

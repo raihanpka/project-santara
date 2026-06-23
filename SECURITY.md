@@ -75,4 +75,4 @@ The following people have reported security issues responsibly. Thank you.
 
 ## Contact
 
-For anything not covered here, email security@projectsantara.id.
+For anything not covered here, email me@raihanpk.com.

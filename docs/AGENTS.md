@@ -187,6 +187,7 @@ Fixes #123.
 - Subject: imperative, sentence case, no period, under 72 characters.
 - Body: bullets, capitalized, no trailing period, 72-character wrap.
 - One logical change per commit. Squash fixups locally before pushing.
+- **No AI co-author footers.** Never add `Co-authored-by:` lines for AI assistants, or `Ultraworked with` banners, or any other AI attribution in commit messages. Commits are authored by the human contributor only.
 
 Pull requests: open as draft early, run the full test suite, address review comments, squash-merge on approval.
 

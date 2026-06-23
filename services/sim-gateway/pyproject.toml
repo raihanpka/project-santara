@@ -10,7 +10,7 @@ readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.12"
 authors = [
-    {name = "Raihan Putra Kirana", email = "maintainers@projectsantara.id"},
+    {name = "Raihan Putra Kirana", email = "me@raihanpk.com"},
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

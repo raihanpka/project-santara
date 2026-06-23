@@ -40,14 +40,14 @@ Community leaders have the right and responsibility to remove, edit, or reject c
 This Code of Conduct applies within all community spaces, including but not limited to:
 
 - The GitHub repository at github.com/raihanpka/project-santara
-- The Threads and Twitter accounts
+- The GitHub repository
 - Any other forum or channel created by the project
 
 It also applies when an individual is officially representing the community in public spaces. Examples of representing the community include using an official project email address, posting via an official social media account, or acting as an appointed representative at an online or offline event.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at conduct@projectsantara.id. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement at me@raihanpk.com. All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 
@@ -97,4 +97,4 @@ Standar kami: menunjukkan empati dan kebaikan terhadap orang lain, menghormati p
 
 Untuk versi lengkap dalam Bahasa Indonesia, lihat terjemahan resmi Contributor Covenant 2.1 di https://www.contributor-covenant.org/id/version/2/1/code_of_conduct.html.
 
-Pelaporan pelanggaran dapat dilakukan melalui conduct@projectsantara.id.
+Pelaporan pelanggaran dapat dilakukan melalui me@raihanpk.com.
