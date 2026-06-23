@@ -1,6 +1,5 @@
 # Project Santara
 
-[![License](https://img.shields.io/github/license/raihanpka/project-santara)](./LICENSE)
 [![CI](https://github.com/raihanpka/project-santara/actions/workflows/ci.yml/badge.svg)](https://github.com/raihanpka/project-santara/actions/workflows/ci.yml)
 [![Codecov](https://codecov.io/gh/raihanpka/project-santara/branch/main/graph/badge.svg)](https://codecov.io/gh/raihanpka/project-santara)
 [![Go Report Card](https://goreportcard.com/badge/github.com/raihanpka/project-santara/services/sim-engine)](https://goreportcard.com/report/github.com/raihanpka/project-santara/services/sim-engine)

@@ -11,6 +11,7 @@
 *__MACOSX
 
 # Temp
+*temp
 *.tmp
 *.temp
 *.claude
